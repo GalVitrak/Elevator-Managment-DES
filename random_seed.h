@@ -28,17 +28,15 @@ typedef struct {
 void seed_scenario_free(SeedScenario* scenario);
 
 /*
- * Generate numRequests random trips (source != destination).
- * Uses srand(randomSeed); if randomSeed is 0, uses current time.
- * Returns 1 on success, 0 if invalid config or allocation fails.
- */
-/*
  * Generate random trips with staggered arrivalTime (exponential inter-arrival).
- * avgInterArrivalSeconds: mean gap between consecutive arrivals (e.g. 30).
+ * Mean gap is computed from travel/door timing and building config (see random_seed.c).
+ * Uses srand(randomSeed); if randomSeed is 0, uses current time.
  */
 int seed_generate_random(SeedScenario* scenario, const SimulationConfig* config,
-                         int numRequests, unsigned int randomSeed,
-                         double avgInterArrivalSeconds);
+                         int numRequests, unsigned int randomSeed);
+
+/* Mean seconds between arrivals from timing model (for logging / seed file). */
+double seed_compute_auto_inter_arrival(const SimulationConfig* config, int numRequests);
 
 /* Write config, seed, and all requests to a text file. Returns 1 on success. */
 int seed_save_to_file(const SeedScenario* scenario, const char* filename);

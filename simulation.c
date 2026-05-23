@@ -50,7 +50,7 @@ static void simulation_schedule_elevator_travel(Simulation* sim, Elevator* eleva
     int fromFloor = elevator->currentFloor;
 
     travelTime = elevator_travel_time_seconds(fromFloor, targetFloor);
-    arrivalTime = sim->currentTime + travelTime;
+    arrivalTime = sim->currentTime + DOOR_CLOSE_TIME_SECONDS + travelTime;
 
     elevator_assign_to_floor(elevator, targetFloor);
 
@@ -520,7 +520,8 @@ void handle_elevator_arrival(Simulation* sim, Event* event)
              elevator->id, event->floor);
     log_message(sim->currentTime, LOG_INFO, msg);
 
-    simulation_schedule_event(sim, sim->currentTime, EVENT_DOORS_OPEN,
+    simulation_schedule_event(sim, sim->currentTime + DOOR_OPEN_TIME_SECONDS,
+                              EVENT_DOORS_OPEN,
                               elevator->id, event->passengerId, event->floor, -1);
 }
 
@@ -549,7 +550,7 @@ void handle_doors_open(Simulation* sim, Event* event)
     if (passengerOnBoard != NULL &&
         passengerOnBoard->destinationFloor == event->floor) {
       /* Arrived at destination - passenger exits */
-        simulation_schedule_event(sim, sim->currentTime + 0.2, EVENT_PASSENGER_EXIT,
+        simulation_schedule_event(sim, sim->currentTime, EVENT_PASSENGER_EXIT,
                                   elevator->id, passengerOnBoard->id, event->floor, -1);
         return;
     }
@@ -564,11 +565,13 @@ void handle_doors_open(Simulation* sim, Event* event)
         sim->activePassengersByElevator[elevator->id] = waitingPassenger;
         log_message(sim->currentTime, LOG_INFO, "Passenger boarded elevator");
 
-        simulation_schedule_event(sim, sim->currentTime + 0.5, EVENT_DOORS_CLOSE,
+        simulation_schedule_event(sim, sim->currentTime + DOOR_DWELL_SECONDS,
+                                  EVENT_DOORS_CLOSE,
                                   elevator->id, waitingPassenger->id,
                                   waitingPassenger->destinationFloor, -1);
     } else {
-        simulation_schedule_event(sim, sim->currentTime + 0.5, EVENT_DOORS_CLOSE,
+        simulation_schedule_event(sim, sim->currentTime + DOOR_DWELL_SECONDS,
+                                  EVENT_DOORS_CLOSE,
                                   elevator->id, -1, event->floor, -1);
     }
 }
@@ -634,6 +637,7 @@ void handle_passenger_exit(Simulation* sim, Event* event)
     elevator->status = ELEVATOR_IDLE;
     elevator->direction = DIR_NONE;
 
-    simulation_schedule_event(sim, sim->currentTime + 0.5, EVENT_DOORS_CLOSE,
+    simulation_schedule_event(sim, sim->currentTime + DOOR_DWELL_SECONDS,
+                              EVENT_DOORS_CLOSE,
                               elevator->id, -1, event->floor, -1);
 }

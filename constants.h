@@ -17,7 +17,12 @@
 #define DEFAULT_CAPACITY    10
 
 /* Simulated seconds to travel one floor (DES movement model) */
-#define SECONDS_PER_FLOOR   3.0
+#define SECONDS_PER_FLOOR           3.0
+
+/* Door timing at each floor stop (seconds) */
+#define DOOR_OPEN_TIME_SECONDS      1.0
+#define DOOR_DWELL_SECONDS          5.0   /* doors stay open for boarding / alighting */
+#define DOOR_CLOSE_TIME_SECONDS     1.0
 
 /* End-of-run summary report (bank-style statistics) */
 #define STATS_REPORT_FILE   "simulation_results.txt"
@@ -46,8 +51,5 @@
 /* Values used when config_set_defaults() is called */
 #define DEFAULT_NUM_FLOORS      5
 #define DEFAULT_NUM_ELEVATORS   2
-
-/* Default mean seconds between passenger arrivals (random seed generation) */
-#define DEFAULT_AVG_INTER_ARRIVAL   30.0
 
 #endif /* CONSTANTS_H */

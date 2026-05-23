@@ -37,6 +37,27 @@ static void statistics_update_max_queue(SimulationStats* stats, const Simulation
     }
 }
 
+static int statistics_ensure_trip_capacity(SimulationStats* stats)
+{
+    PassengerTripRecord* grown;
+    int newCapacity;
+
+    if (stats->tripRecordCount < stats->tripRecordCapacity) {
+        return 1;
+    }
+
+    newCapacity = (stats->tripRecordCapacity == 0) ? 16 : stats->tripRecordCapacity * 2;
+    grown = (PassengerTripRecord*)realloc(stats->tripRecords,
+                                          (size_t)newCapacity * sizeof(PassengerTripRecord));
+    if (grown == NULL) {
+        return 0;
+    }
+
+    stats->tripRecords = grown;
+    stats->tripRecordCapacity = newCapacity;
+    return 1;
+}
+
 void statistics_init(SimulationStats* stats, int numElevators)
 {
     memset(stats, 0, sizeof(*stats));
@@ -53,7 +74,11 @@ void statistics_destroy(SimulationStats* stats)
         return;
     }
     free(stats->elevatorBusyTime);
+    free(stats->tripRecords);
     stats->elevatorBusyTime = NULL;
+    stats->tripRecords = NULL;
+    stats->tripRecordCount = 0;
+    stats->tripRecordCapacity = 0;
     stats->numElevators = 0;
 }
 
@@ -129,6 +154,9 @@ void statistics_on_passenger_served(SimulationStats* stats, const Passenger* pas
                                     double exitTime)
 {
     double totalTrip;
+    double queueTime;
+    double travelTime;
+    PassengerTripRecord* record;
 
     if (stats == NULL || passenger == NULL) {
         return;
@@ -137,6 +165,32 @@ void statistics_on_passenger_served(SimulationStats* stats, const Passenger* pas
     totalTrip = exitTime - passenger->requestTime;
     if (totalTrip < 0.0) {
         totalTrip = 0.0;
+    }
+
+    queueTime = 0.0;
+    if (passenger->boardTime >= 0.0) {
+        queueTime = passenger->boardTime - passenger->requestTime;
+        if (queueTime < 0.0) {
+            queueTime = 0.0;
+        }
+    }
+
+    travelTime = 0.0;
+    if (passenger->boardTime >= 0.0) {
+        travelTime = exitTime - passenger->boardTime;
+        if (travelTime < 0.0) {
+            travelTime = 0.0;
+        }
+    }
+
+    if (statistics_ensure_trip_capacity(stats)) {
+        record = &stats->tripRecords[stats->tripRecordCount++];
+        record->passengerId = passenger->id;
+        record->sourceFloor = passenger->sourceFloor;
+        record->destinationFloor = passenger->destinationFloor;
+        record->queueSeconds = queueTime;
+        record->travelSeconds = travelTime;
+        record->totalSeconds = totalTrip;
     }
 
     stats->totalServed++;
@@ -173,7 +227,12 @@ static void statistics_print_to_file(FILE* out, const SimulationStats* stats,
     fprintf(out, "Number of Floors: %d\n", sim->numFloors);
     fprintf(out, "Number of Elevators: %d\n", sim->numElevators);
     fprintf(out, "Elevator Capacity: %d\n", sim->elevatorCapacity);
-    fprintf(out, "Travel Time per Floor: %.2f seconds\n\n", SECONDS_PER_FLOOR);
+    fprintf(out, "Travel Time per Floor: %.2f seconds\n", SECONDS_PER_FLOOR);
+    fprintf(out, "Door Open Time: %.2f seconds\n", DOOR_OPEN_TIME_SECONDS);
+    fprintf(out, "Door Open Dwell (per stop): %.2f seconds\n", DOOR_DWELL_SECONDS);
+    fprintf(out, "Door Close Time: %.2f seconds\n", DOOR_CLOSE_TIME_SECONDS);
+    fprintf(out, "Door Cycle per Floor Stop: %.2f seconds\n\n",
+            DOOR_OPEN_TIME_SECONDS + DOOR_DWELL_SECONDS + DOOR_CLOSE_TIME_SECONDS);
 
     fprintf(out, "--- Overall Performance ---\n");
     fprintf(out, "Total Passenger Requests: %d\n", stats->totalRequests);
@@ -190,6 +249,24 @@ static void statistics_print_to_file(FILE* out, const SimulationStats* stats,
     fprintf(out, "Maximum Wait Time in Queue: %.2f seconds\n", stats->maxWaitTime);
     fprintf(out, "Average Total Trip Time (Wait + Travel + Doors): %.2f seconds\n\n",
             avgTrip);
+
+    fprintf(out, "--- Per-Passenger Details ---\n");
+    fprintf(out, "%-6s %-6s %-6s %-10s %-10s %-10s\n",
+            "ID", "From", "To", "Queue(s)", "Travel(s)", "Total(s)");
+    for (i = 0; i < stats->tripRecordCount; i++) {
+        const PassengerTripRecord* r = &stats->tripRecords[i];
+        fprintf(out, "%-6d %-6d %-6d %-10.2f %-10.2f %-10.2f\n",
+                r->passengerId,
+                r->sourceFloor,
+                r->destinationFloor,
+                r->queueSeconds,
+                r->travelSeconds,
+                r->totalSeconds);
+    }
+    if (stats->tripRecordCount == 0) {
+        fprintf(out, "(no completed trips)\n");
+    }
+    fprintf(out, "\n");
 
     fprintf(out, "--- Queue Statistics ---\n");
     fprintf(out, "Maximum Queue Length Reached: %d\n", stats->maxQueueLength);

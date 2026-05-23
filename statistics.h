@@ -5,6 +5,16 @@
 
 struct Simulation; /* defined in simulation.h */
 
+/* One completed passenger trip (recorded when they exit the elevator). */
+typedef struct {
+    int passengerId;
+    int sourceFloor;
+    int destinationFloor;
+    double queueSeconds;
+    double travelSeconds;
+    double totalSeconds;
+} PassengerTripRecord;
+
 /*
  * Accumulated metrics during DES (time-weighted queue and elevator busy times).
  */
@@ -20,6 +30,9 @@ typedef struct {
     double maxWaitTime;
     double sumTotalTripTime;
     double* elevatorBusyTime;
+    PassengerTripRecord* tripRecords;
+    int tripRecordCount;
+    int tripRecordCapacity;
 } SimulationStats;
 
 void statistics_init(SimulationStats* stats, int numElevators);

@@ -57,7 +57,7 @@ static double random_exponential_gap(double meanSeconds)
     double gap;
 
     if (meanSeconds <= 0.0) {
-        meanSeconds = DEFAULT_AVG_INTER_ARRIVAL;
+        meanSeconds = 30.0;
     }
 
     u = (double)rand() / (double)RAND_MAX;
@@ -68,9 +68,52 @@ static double random_exponential_gap(double meanSeconds)
     return gap;
 }
 
+static double timing_door_cycle_per_stop(void)
+{
+    return DOOR_OPEN_TIME_SECONDS + DOOR_DWELL_SECONDS + DOOR_CLOSE_TIME_SECONDS;
+}
+
+/*
+ * seed_compute_auto_inter_arrival - Derive mean gap from travel + door timing and fleet size.
+ * Uses average trip (pickup leg + drop-off leg, two door cycles) spread across elevators,
+ * and never faster than evenly filling the simulation horizon.
+ */
+double seed_compute_auto_inter_arrival(const SimulationConfig* config, int numRequests)
+{
+    double avgFloorDistance;
+    double oneLegTravel;
+    double fullTrip;
+    double capacityGap;
+    double spreadGap;
+
+    if (config == NULL || config->numElevators < 1) {
+        return 30.0;
+    }
+
+    if (config->numFloors > 1) {
+        avgFloorDistance = (double)(config->numFloors - 1) / 3.0;
+    } else {
+        avgFloorDistance = 0.0;
+    }
+
+    oneLegTravel = avgFloorDistance * SECONDS_PER_FLOOR;
+    fullTrip = 2.0 * oneLegTravel + 2.0 * timing_door_cycle_per_stop();
+    capacityGap = fullTrip / (double)config->numElevators;
+
+    if (numRequests > 0 && config->maxSimulationTime > 0.0) {
+        spreadGap = (config->maxSimulationTime * 0.95) / (double)numRequests;
+    } else {
+        spreadGap = capacityGap;
+    }
+
+    if (spreadGap > capacityGap) {
+        return spreadGap;
+    }
+    return capacityGap;
+}
+
 int seed_generate_random(SeedScenario* scenario, const SimulationConfig* config,
-                         int numRequests, unsigned int randomSeed,
-                         double avgInterArrivalSeconds)
+                         int numRequests, unsigned int randomSeed)
 {
     int i;
     unsigned int seedUsed;
@@ -102,13 +145,7 @@ int seed_generate_random(SeedScenario* scenario, const SimulationConfig* config,
         return 1;
     }
 
-    meanGap = avgInterArrivalSeconds;
-    if (meanGap <= 0.0) {
-        meanGap = config->maxSimulationTime / (double)(numRequests + 1);
-        if (meanGap < 1.0) {
-            meanGap = DEFAULT_AVG_INTER_ARRIVAL;
-        }
-    }
+    meanGap = seed_compute_auto_inter_arrival(config, numRequests);
 
     maxArrival = config->maxSimulationTime * 0.95;
 
@@ -169,9 +206,7 @@ int seed_save_to_file(const SeedScenario* scenario, const char* filename)
     fprintf(file, "random_seed=%u\n", scenario->randomSeed);
     fprintf(file, "num_requests=%d\n", scenario->numRequests);
     fprintf(file, "avg_inter_arrival=%.2f\n",
-            scenario->numRequests > 1 ?
-            (scenario->requests[scenario->numRequests - 1].arrivalTime /
-             (double)scenario->numRequests) : 0.0);
+            seed_compute_auto_inter_arrival(&scenario->config, scenario->numRequests));
 
     for (i = 0; i < scenario->numRequests; i++) {
         fprintf(file, "request=%d,%d,%.2f\n",

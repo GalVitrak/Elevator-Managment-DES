@@ -1,0 +1,11 @@
+num_floors=5
+num_elevators=2
+capacity=10
+max_simulation_time=500.00
+random_seed=42
+num_requests=5
+request=0,3
+request=1,4
+request=4,0
+request=2,0
+request=3,1

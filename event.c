@@ -73,7 +73,8 @@ void event_list_insert_sorted(EventList* list, Event* event)
 }
 
 /*
- * event_list_pop_earliest - Remove list head (minimum time event).
+ * event_list_pop_earliest - Remove list head (event with lowest T).
+ * DES: each loop iteration takes the minimum-time future event.
  * Caller owns returned pointer and must free() after handling.
  */
 Event* event_list_pop_earliest(EventList* list)

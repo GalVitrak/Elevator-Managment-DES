@@ -268,9 +268,18 @@ void simulation_print_state(const Simulation* sim)
 }
 
 /*
- * simulation_run - DES main loop: process events in time order until done or max time.
- * 1) Pop earliest event  2) Set currentTime  3) Dispatch handler  4) Free event node.
- * Stops if next event time exceeds maxSimulationTime (event discarded).
+ * simulation_run - DES main loop (Discrete-Event Simulation).
+ *
+ * Course model / מודל הקורס:
+ *   - Jump from event to event; NO real-time wait between events (no sleep).
+ *   - If event 1 is at T=1 and event 2 at T=2, the clock jumps 1->2 instantly.
+ *   - Loop: find event with lowest T in the Future Event List, execute it, repeat.
+ *
+ * Steps each iteration:
+ *   1) event_list_pop_earliest  - lowest T from sorted FEL
+ *   2) currentTime = event.time - simulation clock JUMP (not wall-clock delay)
+ *   3) simulation_dispatch_event - run handler
+ *   4) free(event)
  */
 int simulation_run(Simulation* sim)
 {
@@ -283,7 +292,9 @@ int simulation_run(Simulation* sim)
 
     log_message(sim->currentTime, LOG_INFO, "Simulation started");
 
+    /* DES loop: process Future Event List until empty or past maxSimulationTime */
     while (sim->eventList.head != NULL && sim->currentTime < sim->maxSimulationTime) {
+        /* Lowest-T event in the list (ראש הרשימה הממוינת) */
         event = event_list_pop_earliest(&sim->eventList);
         if (event == NULL) {
             break;
@@ -295,7 +306,10 @@ int simulation_run(Simulation* sim)
         }
 
         statistics_advance_to_time(&sim->stats, sim, event->time);
+
+        /* Jump simulation clock to this event's T — no waiting between events */
         sim->currentTime = event->time;
+
         simulation_dispatch_event(sim, event);
         free(event);
     }

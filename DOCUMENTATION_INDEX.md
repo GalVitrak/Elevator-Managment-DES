@@ -25,6 +25,7 @@ Repository: https://github.com/GalVitrak/Elevator-Managment-DES
 | [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) | ~15 | How to present: storyline, timing, what to emphasize |
 | [docs/PRESENTATION_SLIDES.md](docs/PRESENTATION_SLIDES.md) | ~20 | Slide-by-slide titles, bullets, speaker notes |
 | [docs/DES_THEORY.md](docs/DES_THEORY.md) | ~12 | DES concepts, FEL, vs time-step — theory for slides |
+| [docs/DES_COURSE_HE.md](docs/DES_COURSE_HE.md) | ~4 | עברית: קפיצת שעון מאירוע לאירוע, לולאת T מינימלי |
 | [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | ~8 | Minute-by-minute live demo |
 | [docs/SAMPLE_RUNS.md](docs/SAMPLE_RUNS.md) | ~10 | Example inputs + expected log output |
 | [docs/FAQ.md](docs/FAQ.md) | ~8 | Anticipated questions & answers |

@@ -22,6 +22,13 @@
 /* Input/output file for building and simulation parameters */
 #define CONFIG_FILE_NAME    "config.txt"
 
+/* Saved random scenario: config + RNG seed + passenger request list */
+#define SEED_FILE_NAME      "random_seed.txt"
+
+/* Max passenger requests in one random seed file / generation */
+#define MAX_SEED_REQUESTS   100
+#define MIN_SEED_REQUESTS   0
+
 /* Validation bounds for interactive input and config_load */
 #define MIN_FLOORS          2
 #define MAX_FLOORS          50

@@ -8,6 +8,7 @@
 #include "constants.h"
 #include "logger.h"
 #include "file_manager.h"
+#include "random_seed.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +23,9 @@ static void print_menu(void)
     printf("3. Save configuration\n");
     printf("4. Add passenger request manually\n");
     printf("5. Print system state\n");
-    printf("6. Exit\n");
+    printf("6. Generate random seed file\n");
+    printf("7. Load seed file and run simulation\n");
+    printf("8. Exit\n");
     printf("Select option: ");
 }
 
@@ -156,6 +159,107 @@ static void start_simulation_interactive(Simulation* sim, SimulationConfig* conf
 }
 
 /*
+ * generate_random_seed_interactive - Menu option 6: user picks building params and
+ * request count; generates random trips, saves to random_seed.txt (and config.txt).
+ */
+static void generate_random_seed_interactive(Simulation* sim, SimulationConfig* config)
+{
+    SeedScenario scenario;
+    int numRequests;
+    int seedInput;
+    unsigned int randomSeed;
+    int runNow;
+
+    memset(&scenario, 0, sizeof(scenario));
+
+    printf("\n--- Generate random seed scenario ---\n");
+    configure_interactively(config);
+    if (!config_validate(config)) {
+        printf("Invalid configuration.\n");
+        return;
+    }
+
+    if (!read_int_in_range("How many random passenger requests? (0-100): ",
+                           MIN_SEED_REQUESTS, MAX_SEED_REQUESTS, &numRequests)) {
+        return;
+    }
+
+    if (!read_int_in_range("Random seed (0 = use current time): ", 0, 2147483647, &seedInput)) {
+        return;
+    }
+    randomSeed = (unsigned int)seedInput;
+
+    if (!seed_generate_random(&scenario, config, numRequests, randomSeed)) {
+        printf("Failed to generate random requests.\n");
+        seed_scenario_free(&scenario);
+        return;
+    }
+
+    if (!seed_save_to_file(&scenario, SEED_FILE_NAME)) {
+        printf("Failed to save seed file.\n");
+        seed_scenario_free(&scenario);
+        return;
+    }
+
+    if (config_save(config, CONFIG_FILE_NAME)) {
+        printf("Configuration also saved to %s\n", CONFIG_FILE_NAME);
+    }
+
+    printf("Saved %d random requests to %s (random_seed=%u)\n",
+           scenario.numRequests, SEED_FILE_NAME, scenario.randomSeed);
+
+    if (!read_int_in_range("Run simulation now? (1=yes, 0=no): ", 0, 1, &runNow)) {
+        seed_scenario_free(&scenario);
+        return;
+    }
+
+    if (runNow == 1) {
+        if (!seed_apply_to_simulation(sim, &scenario)) {
+            printf("Failed to apply seed scenario to simulation.\n");
+        } else {
+            *config = scenario.config;
+            simulation_print_state(sim);
+            simulation_run(sim);
+            simulation_print_state(sim);
+        }
+    }
+
+    seed_scenario_free(&scenario);
+}
+
+/*
+ * load_seed_and_run_interactive - Menu option 7: load random_seed.txt and run DES.
+ */
+static void load_seed_and_run_interactive(Simulation* sim, SimulationConfig* config)
+{
+    SeedScenario scenario;
+
+    memset(&scenario, 0, sizeof(scenario));
+
+    printf("\n--- Load seed file and run ---\n");
+    if (!seed_load_from_file(&scenario, SEED_FILE_NAME)) {
+        printf("Failed to load %s\n", SEED_FILE_NAME);
+        seed_scenario_free(&scenario);
+        return;
+    }
+
+    *config = scenario.config;
+
+    if (!seed_apply_to_simulation(sim, &scenario)) {
+        printf("Failed to initialize simulation from seed file.\n");
+        seed_scenario_free(&scenario);
+        return;
+    }
+
+    printf("Loaded %d requests from %s\n", scenario.numRequests, SEED_FILE_NAME);
+    simulation_print_state(sim);
+    simulation_run(sim);
+    simulation_print_state(sim);
+
+    seed_scenario_free(&scenario);
+}
+
+/*
  * main - Initialize logging, run menu loop until exit, then free simulation and close log.
  * Option 2 loads config and inits sim without running.
  * Option 3 saves config from current sim or defaults.
@@ -216,10 +320,16 @@ int main(void)
             }
             break;
         case 6:
+            generate_random_seed_interactive(&sim, &config);
+            break;
+        case 7:
+            load_seed_and_run_interactive(&sim, &config);
+            break;
+        case 8:
             running = 0;
             break;
         default:
-            printf("Invalid option. Choose 1-6.\n");
+            printf("Invalid option. Choose 1-8.\n");
             break;
         }
     }

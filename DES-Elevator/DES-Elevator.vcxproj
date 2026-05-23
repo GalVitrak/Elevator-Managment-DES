@@ -152,6 +152,7 @@
     <ClCompile Include="..\event.c" />
     <ClCompile Include="..\logger.c" />
     <ClCompile Include="..\file_manager.c" />
+    <ClCompile Include="..\random_seed.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\constants.h" />
@@ -162,6 +163,7 @@
     <ClInclude Include="..\event.h" />
     <ClInclude Include="..\logger.h" />
     <ClInclude Include="..\file_manager.h" />
+    <ClInclude Include="..\random_seed.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

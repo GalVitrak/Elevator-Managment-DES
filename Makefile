@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -pedantic
 TARGET = des_elevator
 
-SRCS = main.c simulation.c elevator.c passenger.c floor.c event.c logger.c file_manager.c
+SRCS = main.c simulation.c elevator.c passenger.c floor.c event.c logger.c file_manager.c random_seed.c
 OBJS = $(SRCS:.c=.o)
 
 .PHONY: all clean run

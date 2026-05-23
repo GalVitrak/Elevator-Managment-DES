@@ -44,11 +44,16 @@ void elevator_init(Elevator* elevator, int id, int capacity);
 int elevator_find_first_idle(Elevator* elevators, int count);
 
 /*
- * Send elevator toward floor (phase 1: instant move to that floor).
- * Updates direction, targetFloor, and currentFloor immediately.
- * TODO phase 2: schedule arrival event after travel delay instead.
+ * Start travel toward floor: set target, direction, MOVING.
+ * Does not change currentFloor — position updates on ELEVATOR_ARRIVAL.
  */
 void elevator_assign_to_floor(Elevator* elevator, int floor);
+
+/*
+ * Simulated travel duration in seconds: |to - from| * SECONDS_PER_FLOOR.
+ * Returns 0 if from and to are the same floor.
+ */
+double elevator_travel_time_seconds(int fromFloor, int toFloor);
 
 /* Print one line describing this elevator (debug / menu option 5). */
 void elevator_print(const Elevator* elevator);

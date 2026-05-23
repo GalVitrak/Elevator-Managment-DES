@@ -20,6 +20,7 @@ typedef struct Passenger {
     int sourceFloor;
     int destinationFloor;
     double requestTime;
+    double boardTime;       /* simulation time when boarded; < 0 if not yet boarded */
     PassengerStatus status;
     struct Passenger* next;
 } Passenger;

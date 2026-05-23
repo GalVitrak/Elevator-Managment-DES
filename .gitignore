@@ -12,6 +12,7 @@ Release/
 # Logs and local config (optional - config can be committed as example)
 simulation_log.txt
 random_seed.txt
+simulation_results.txt
 
 # Visual Studio
 .vs/

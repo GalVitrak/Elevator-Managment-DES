@@ -37,6 +37,32 @@ static void simulation_schedule_event(Simulation* sim, double time, EventType ty
 }
 
 /*
+ * simulation_schedule_elevator_travel - Start movement and schedule arrival after travel time.
+ * Uses elevator_travel_time_seconds (SECONDS_PER_FLOOR per floor difference).
+ */
+static void simulation_schedule_elevator_travel(Simulation* sim, Elevator* elevator,
+                                                int passengerId, int targetFloor)
+{
+    double travelTime;
+    double arrivalTime;
+    char msg[MAX_NAME_LEN * 4];
+    int fromFloor = elevator->currentFloor;
+
+    travelTime = elevator_travel_time_seconds(fromFloor, targetFloor);
+    arrivalTime = sim->currentTime + travelTime;
+
+    elevator_assign_to_floor(elevator, targetFloor);
+
+    snprintf(msg, sizeof(msg),
+             "Elevator %d traveling %d -> %d (%.1f s, arrives t=%.2f)",
+             elevator->id, fromFloor, targetFloor, travelTime, arrivalTime);
+    log_message(sim->currentTime, LOG_INFO, msg);
+
+    simulation_schedule_event(sim, arrivalTime, EVENT_ELEVATOR_ARRIVAL,
+                              elevator->id, passengerId, targetFloor);
+}
+
+/*
  * simulation_dispatch_event - Route one event to the correct handler by type.
  * Called after currentTime has been advanced to event->time.
  */
@@ -117,6 +143,8 @@ int simulation_init(Simulation* sim, const SimulationConfig* config)
     }
 
     event_list_init(&sim->eventList);
+    statistics_reset(&sim->stats, sim->numElevators);
+    sim->stats.lastSampleTime = 0.0;
     return 1;
 }
 
@@ -156,6 +184,8 @@ void simulation_destroy(Simulation* sim)
 
     free(sim->activePassengersByElevator);
     sim->activePassengersByElevator = NULL;
+
+    statistics_destroy(&sim->stats);
 }
 
 /* simulation_reset - Destroy and re-initialize with the same config snapshot. */
@@ -203,6 +233,7 @@ void simulation_add_passenger_request(Simulation* sim, int sourceFloor,
     }
 
     floor_enqueue_passenger(&sim->floors[sourceFloor], passenger);
+    statistics_on_passenger_request(&sim->stats, sim);
 
     snprintf(msg, sizeof(msg),
              "Passenger %d request queued: floor %d -> %d",
@@ -263,6 +294,7 @@ int simulation_run(Simulation* sim)
             break;
         }
 
+        statistics_advance_to_time(&sim->stats, sim, event->time);
         sim->currentTime = event->time;
         simulation_dispatch_event(sim, event);
         free(event);
@@ -271,8 +303,8 @@ int simulation_run(Simulation* sim)
     snprintf(msg, sizeof(msg), "Simulation finished at t=%.2f", sim->currentTime);
     log_message(sim->currentTime, LOG_INFO, msg);
 
-  /* TODO: statistics calculations - wait times, throughput */
-  /* TODO: utilization reports and performance analytics */
+    statistics_finalize_and_print(&sim->stats, sim);
+
   /* TODO: emergency events and OUT_OF_SERVICE / MAINTENANCE handling */
 
     return 1;
@@ -339,16 +371,11 @@ void handle_passenger_call(Simulation* sim, Event* event)
              elevator->id, sourceFloor);
     log_message(sim->currentTime, LOG_INFO, msg);
 
-    elevator_assign_to_floor(elevator, sourceFloor);
-
-    /* Instant arrival for foundation phase */
-    simulation_schedule_event(sim, sim->currentTime, EVENT_ELEVATOR_ARRIVAL,
-                              elevator->id, passengerId, sourceFloor);
+    simulation_schedule_elevator_travel(sim, elevator, passengerId, sourceFloor);
 }
 
 /*
- * handle_elevator_arrival - Cab reached event->floor; update position, open doors next.
- * TODO phase 2: position updated only here after travel delay, not in assign.
+ * handle_elevator_arrival - Cab reached event->floor after travel time; update position.
  */
 void handle_elevator_arrival(Simulation* sim, Event* event)
 {
@@ -364,12 +391,11 @@ void handle_elevator_arrival(Simulation* sim, Event* event)
     elevator->currentFloor = event->floor;
     elevator->targetFloor = event->floor;
     elevator->status = ELEVATOR_MOVING;
+    elevator->doorState = DOOR_CLOSED;
 
     snprintf(msg, sizeof(msg), "Elevator %d arrived at floor %d",
              elevator->id, event->floor);
     log_message(sim->currentTime, LOG_INFO, msg);
-
-  /* TODO: realistic elevator movement between floors */
 
     simulation_schedule_event(sim, sim->currentTime, EVENT_DOORS_OPEN,
                               elevator->id, event->passengerId, event->floor);
@@ -409,6 +435,8 @@ void handle_doors_open(Simulation* sim, Event* event)
     if (waitingPassenger != NULL) {
       /* TODO: overload detection when passengerCount >= capacity */
         waitingPassenger->status = PASSENGER_IN_ELEVATOR;
+        waitingPassenger->boardTime = sim->currentTime;
+        statistics_on_passenger_boarded(&sim->stats, waitingPassenger, sim->currentTime);
         elevator->passengerCount++;
         sim->activePassengersByElevator[elevator->id] = waitingPassenger;
         log_message(sim->currentTime, LOG_INFO, "Passenger boarded elevator");
@@ -442,9 +470,7 @@ void handle_doors_close(Simulation* sim, Event* event)
     if (event->passengerId >= 0 && event->floor >= 0 &&
         simulation_validate_floor(sim, event->floor) &&
         sim->activePassengersByElevator[elevator->id] != NULL) {
-        elevator_assign_to_floor(elevator, event->floor);
-        simulation_schedule_event(sim, sim->currentTime, EVENT_ELEVATOR_ARRIVAL,
-                                  elevator->id, event->passengerId, event->floor);
+        simulation_schedule_elevator_travel(sim, elevator, event->passengerId, event->floor);
     } else {
         elevator->status = ELEVATOR_IDLE;
         elevator->direction = DIR_NONE;
@@ -474,6 +500,7 @@ void handle_passenger_exit(Simulation* sim, Event* event)
     }
 
     if (passenger != NULL) {
+        statistics_on_passenger_served(&sim->stats, passenger, sim->currentTime);
         passenger->status = PASSENGER_ARRIVED;
         passenger_destroy(passenger);
         sim->activePassengersByElevator[elevator->id] = NULL;
@@ -486,5 +513,4 @@ void handle_passenger_exit(Simulation* sim, Event* event)
     simulation_schedule_event(sim, sim->currentTime + 0.5, EVENT_DOORS_CLOSE,
                               elevator->id, -1, event->floor);
 
-  /* TODO: final polish for passenger exit flow and statistics */
 }

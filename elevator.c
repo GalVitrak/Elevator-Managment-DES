@@ -2,6 +2,7 @@
  * elevator.c - Elevator cab state and simple first-idle dispatch helpers
  */
 #include "elevator.h"
+#include "constants.h"
 #include "logger.h"
 
 #include <stdio.h>
@@ -36,14 +37,25 @@ int elevator_find_first_idle(Elevator* elevators, int count)
 }
 
 /*
- * elevator_assign_to_floor - Move cab to target floor (phase 1: instantaneous).
- * Sets direction from current vs target, then sets currentFloor = floor immediately.
- * TODO phase 2: keep MOVING until a later ELEVATOR_ARRIVAL event fires.
+ * elevator_travel_time_seconds - DES delay for moving between two floors.
+ */
+double elevator_travel_time_seconds(int fromFloor, int toFloor)
+{
+    int distance = fromFloor - toFloor;
+    if (distance < 0) {
+        distance = -distance;
+    }
+    return (double)distance * SECONDS_PER_FLOOR;
+}
+
+/*
+ * elevator_assign_to_floor - Begin trip to floor; cab stays at currentFloor until arrival event.
  */
 void elevator_assign_to_floor(Elevator* elevator, int floor)
 {
     elevator->targetFloor = floor;
     elevator->status = ELEVATOR_MOVING;
+    elevator->doorState = DOOR_CLOSED;
 
     if (floor > elevator->currentFloor) {
         elevator->direction = DIR_UP;
@@ -52,10 +64,6 @@ void elevator_assign_to_floor(Elevator* elevator, int floor)
     } else {
         elevator->direction = DIR_NONE;
     }
-
-    /* TODO: realistic elevator movement - travel time per floor, acceleration */
-    elevator->currentFloor = floor;
-    elevator->status = ELEVATOR_MOVING;
 }
 
 static const char* direction_to_string(Direction direction)

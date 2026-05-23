@@ -45,8 +45,10 @@ In DES, the clock jumps to the next scheduled event. Between events, nothing cha
 
 | Phase | Owner | Branch (example) | Status |
 |-------|--------|------------------|--------|
-| Foundation | Phase 1 | `feature/des-foundation-half` | Done |
+| Foundation | Phase 1 | merged to `main` | Done |
 | Advanced behavior | Phase 2 (teammate) | See `TODO.md` | Planned |
+
+**Presenting in class?** Read [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) (≈30 min prep).
 
 ---
 
@@ -95,7 +97,7 @@ See **[TODO.md](TODO.md)** for the full teammate roadmap. Summary:
 ```bash
 git clone https://github.com/GalVitrak/Elevator-Managment-DES.git
 cd Elevator-Managment-DES
-git checkout feature/des-foundation-half
+git checkout main
 ```
 
 ### Build (GCC)
@@ -125,16 +127,52 @@ Open `DES-Elevator.slnx`, build **Debug|x64**, run from **repository root** as w
 
 ---
 
-## Documentation index
+## Documentation (20+ guides)
 
-| Document | Audience | Contents |
-|----------|----------|----------|
-| **[README.md](README.md)** | Everyone | Overview, quick start (this file) |
-| **[TODO.md](TODO.md)** | Phase 2 developer | Prioritized tasks, file map, testing checklist |
-| **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Developers | DES model, data structures, event flows |
-| **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** | Developers | Build, run, debug, PR workflow |
-| **[docs/MODULES.md](docs/MODULES.md)** | Developers | Per-file API reference |
-| **[config.txt.example](config.txt.example)** | Users | Sample configuration |
+**Master index:** **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** — complete list of every document.
+
+### For your presentation (start here)
+
+| Document | Use for |
+|----------|---------|
+| **[docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md)** | Talk structure, timing, what to emphasize |
+| **[docs/PRESENTATION_SLIDES.md](docs/PRESENTATION_SLIDES.md)** | 27 ready-made slides (copy to PowerPoint) |
+| **[docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)** | Minute-by-minute live demo |
+| **[docs/DES_THEORY.md](docs/DES_THEORY.md)** | DES / FEL theory for oral exam |
+| **[docs/PROJECT_OVERVIEW_VISUAL.md](docs/PROJECT_OVERVIEW_VISUAL.md)** | Mermaid diagrams for slides |
+| **[docs/FAQ.md](docs/FAQ.md)** | Q&A preparation |
+| **[docs/SAMPLE_RUNS.md](docs/SAMPLE_RUNS.md)** | Expected log output (demo backup) |
+
+### For users and graders
+
+| Document | Use for |
+|----------|---------|
+| **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** | Full menu / operator manual |
+| **[docs/GRADING_MAP.md](docs/GRADING_MAP.md)** | Where each requirement lives in code |
+| **[docs/ACADEMIC_REQUIREMENTS.md](docs/ACADEMIC_REQUIREMENTS.md)** | Course requirements mapping |
+
+### Technical deep dives
+
+| Document | Use for |
+|----------|---------|
+| **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | System design, DES loop |
+| **[docs/DATA_STRUCTURES.md](docs/DATA_STRUCTURES.md)** | Every struct & enum |
+| **[docs/EVENT_CATALOG.md](docs/EVENT_CATALOG.md)** | All event types & flows |
+| **[docs/ALGORITHMS.md](docs/ALGORITHMS.md)** | FEL, queues, dispatch complexity |
+| **[docs/MODULES.md](docs/MODULES.md)** | API per file |
+| **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** | Build, Git, PR workflow |
+| **[docs/LOGGING_AND_DEBUGGING.md](docs/LOGGING_AND_DEBUGGING.md)** | Logs & debugging |
+| **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** | `config.txt` reference |
+| **[docs/GLOSSARY.md](docs/GLOSSARY.md)** | Terminology |
+| **[docs/PHASE1_PHASE2.md](docs/PHASE1_PHASE2.md)** | What is done vs planned |
+
+### Project management
+
+| Document | Use for |
+|----------|---------|
+| **[TODO.md](TODO.md)** | Phase 2 tasks for teammate |
+| **[docs/TEAM_AND_CONTRIBUTIONS.md](docs/TEAM_AND_CONTRIBUTIONS.md)** | Roles template |
+| **[config.txt.example](config.txt.example)** | Sample configuration |
 
 ---
 

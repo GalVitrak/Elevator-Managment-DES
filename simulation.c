@@ -144,6 +144,8 @@ int simulation_init(Simulation* sim, const SimulationConfig* config)
     }
 
     event_list_init(&sim->eventList);
+    sim->nextDispatchElevator = 0;
+    sim->nextDispatchFloor = 0;
     statistics_reset(&sim->stats, sim->numElevators);
     sim->stats.lastSampleTime = 0.0;
     return 1;
@@ -364,6 +366,81 @@ int simulation_run(Simulation* sim)
 }
 
 /*
+ * simulation_press_hall_buttons - Mark up/down call for a floor.
+ */
+static void simulation_press_hall_buttons(Simulation* sim, int floor)
+{
+    if (floor > 0) {
+        sim->floors[floor].upButtonPressed = 1;
+    }
+    if (floor < sim->numFloors - 1) {
+        sim->floors[floor].downButtonPressed = 1;
+    }
+}
+
+/*
+ * simulation_assign_elevator_pickup - Send idle cab to sourceFloor for passengerId.
+ * Returns 1 if an idle elevator was found and travel was scheduled.
+ */
+static int simulation_assign_elevator_pickup(Simulation* sim, int sourceFloor,
+                                             int passengerId)
+{
+    int elevatorIndex;
+    Elevator* elevator;
+    char msg[MAX_NAME_LEN * 4];
+
+    elevatorIndex = elevator_find_idle_round_robin(sim->elevators, sim->numElevators,
+                                                   &sim->nextDispatchElevator);
+    if (elevatorIndex < 0) {
+        return 0;
+    }
+
+    simulation_press_hall_buttons(sim, sourceFloor);
+
+    elevator = &sim->elevators[elevatorIndex];
+    snprintf(msg, sizeof(msg), "Assigning elevator %d to floor %d (passenger %d)",
+             elevator->id, sourceFloor, passengerId);
+    log_message(sim->currentTime, LOG_INFO, msg);
+
+    simulation_schedule_elevator_travel(sim, elevator, passengerId, sourceFloor);
+    return 1;
+}
+
+/*
+ * simulation_service_waiting_queues - When cabs become idle, dispatch to queued passengers.
+ * Uses round-robin across elevators and floors so load stays roughly balanced.
+ */
+static void simulation_service_waiting_queues(Simulation* sim)
+{
+    int floorsChecked;
+    int floorIndex;
+    Passenger* waiting;
+
+    for (;;) {
+        waiting = NULL;
+        floorIndex = -1;
+
+        for (floorsChecked = 0; floorsChecked < sim->numFloors; floorsChecked++) {
+            int f = (sim->nextDispatchFloor + floorsChecked) % sim->numFloors;
+            if (sim->floors[f].waitingQueueFront != NULL) {
+                waiting = sim->floors[f].waitingQueueFront;
+                floorIndex = f;
+                sim->nextDispatchFloor = (f + 1) % sim->numFloors;
+                break;
+            }
+        }
+
+        if (waiting == NULL) {
+            break;
+        }
+
+        if (!simulation_assign_elevator_pickup(sim, floorIndex, waiting->id)) {
+            break;
+        }
+    }
+}
+
+/*
  * simulation_find_passenger_in_queue - Walk floor queue to find passenger by id.
  * Used to verify PASSENGER_CALL matches a queued passenger. Returns NULL if missing.
  */
@@ -386,8 +463,6 @@ static Passenger* simulation_find_passenger_in_queue(Floor* floor, int passenger
  */
 void handle_passenger_call(Simulation* sim, Event* event)
 {
-    int elevatorIndex;
-    Elevator* elevator;
     Passenger* passenger;
     char msg[MAX_NAME_LEN * 4];
     int sourceFloor = event->floor;
@@ -416,27 +491,10 @@ void handle_passenger_call(Simulation* sim, Event* event)
              passengerId, sourceFloor);
     log_message(sim->currentTime, LOG_INFO, msg);
 
-    if (sourceFloor > 0) {
-        sim->floors[sourceFloor].upButtonPressed = 1;
-    }
-    if (sourceFloor < sim->numFloors - 1) {
-        sim->floors[sourceFloor].downButtonPressed = 1;
-    }
-
-    elevatorIndex = elevator_find_first_idle(sim->elevators, sim->numElevators);
-    if (elevatorIndex < 0) {
+    if (!simulation_assign_elevator_pickup(sim, sourceFloor, passengerId)) {
         log_message(sim->currentTime, LOG_WARNING,
-                    "No idle elevator available - request queued");
-      /* TODO: advanced dispatch algorithms and smarter scheduling */
-        return;
+                    "No idle elevator available - will retry when a cab is free");
     }
-
-    elevator = &sim->elevators[elevatorIndex];
-    snprintf(msg, sizeof(msg), "Assigning elevator %d to floor %d",
-             elevator->id, sourceFloor);
-    log_message(sim->currentTime, LOG_INFO, msg);
-
-    simulation_schedule_elevator_travel(sim, elevator, passengerId, sourceFloor);
 }
 
 /*
@@ -539,6 +597,7 @@ void handle_doors_close(Simulation* sim, Event* event)
     } else {
         elevator->status = ELEVATOR_IDLE;
         elevator->direction = DIR_NONE;
+        simulation_service_waiting_queues(sim);
     }
 
   /* TODO: energy consumption tracking per trip */

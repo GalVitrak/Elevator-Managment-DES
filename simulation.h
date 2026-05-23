@@ -24,6 +24,8 @@ typedef struct Simulation {
     SimulationConfig config;
     Passenger** activePassengersByElevator;
     SimulationStats stats;
+    int nextDispatchElevator;   /* round-robin index for fair cab assignment */
+    int nextDispatchFloor;      /* round-robin start when picking a waiting queue */
 } Simulation;
 
 /*

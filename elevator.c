@@ -26,11 +26,26 @@ void elevator_init(Elevator* elevator, int id, int capacity)
  */
 int elevator_find_first_idle(Elevator* elevators, int count)
 {
+    int start = 0;
+    return elevator_find_idle_round_robin(elevators, count, &start);
+}
+
+int elevator_find_idle_round_robin(Elevator* elevators, int count, int* nextStartIndex)
+{
     int i;
+    int start;
+
+    if (elevators == NULL || count <= 0 || nextStartIndex == NULL) {
+        return -1;
+    }
+
+    start = *nextStartIndex % count;
     for (i = 0; i < count; i++) {
-        if (elevators[i].status == ELEVATOR_IDLE &&
-            elevators[i].doorState == DOOR_CLOSED) {
-            return i;
+        int idx = (start + i) % count;
+        if (elevators[idx].status == ELEVATOR_IDLE &&
+            elevators[idx].doorState == DOOR_CLOSED) {
+            *nextStartIndex = (idx + 1) % count;
+            return idx;
         }
     }
     return -1;

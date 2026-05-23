@@ -44,6 +44,12 @@ void elevator_init(Elevator* elevator, int id, int capacity);
 int elevator_find_first_idle(Elevator* elevators, int count);
 
 /*
+ * Find an idle elevator using round-robin starting at *nextStartIndex.
+ * On success, advances *nextStartIndex past the chosen cab for fair load sharing.
+ */
+int elevator_find_idle_round_robin(Elevator* elevators, int count, int* nextStartIndex);
+
+/*
  * Start travel toward floor: set target, direction, MOVING.
  * Does not change currentFloor — position updates on ELEVATOR_ARRIVAL.
  */

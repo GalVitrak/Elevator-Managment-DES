@@ -30,7 +30,7 @@ void seed_scenario_free(SeedScenario* scenario);
 /*
  * Generate random trips with staggered arrivalTime (exponential inter-arrival).
  * Mean gap is computed from travel/door timing and building config (see random_seed.c).
- * Uses srand(randomSeed); if randomSeed is 0, uses current time.
+ * Uses srand(randomSeed); if randomSeed is 0, uses current time (stored in scenario).
  */
 int seed_generate_random(SeedScenario* scenario, const SimulationConfig* config,
                          int numRequests, unsigned int randomSeed);

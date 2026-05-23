@@ -1,5 +1,6 @@
 /*
  * floor.c - Per-floor FIFO waiting queue (linked list of passengers)
+ * PRESENTATION: floor_enqueue_passenger / floor_take_assigned_passengers — course linked list.
  */
 #include "floor.h"
 #include "logger.h"
@@ -78,6 +79,57 @@ Passenger* floor_dequeue_passenger(Floor* floor)
     }
 
     return passenger;
+}
+
+Passenger* floor_take_assigned_passengers(Floor* floor, int elevatorId, int maxCount)
+{
+    Passenger* takenHead;
+    Passenger* takenTail;
+    Passenger* current;
+    Passenger* previous;
+
+    if (floor == NULL || elevatorId < 0 || maxCount <= 0) {
+        return NULL;
+    }
+
+    takenHead = NULL;
+    takenTail = NULL;
+    previous = NULL;
+    current = floor->waitingQueueFront;
+
+    while (current != NULL && maxCount > 0) {
+        Passenger* next = current->next;
+
+        if (current->assignedElevatorId == elevatorId) {
+            current->next = NULL;
+            current->assignedElevatorId = -1;
+
+            if (takenHead == NULL) {
+                takenHead = current;
+                takenTail = current;
+            } else {
+                takenTail->next = current;
+                takenTail = current;
+            }
+
+            if (previous == NULL) {
+                floor->waitingQueueFront = next;
+            } else {
+                previous->next = next;
+            }
+            if (next == NULL) {
+                floor->waitingQueueRear = previous;
+            }
+
+            maxCount--;
+        } else {
+            previous = current;
+        }
+
+        current = next;
+    }
+
+    return takenHead;
 }
 
 /* floor_queue_size - Count nodes by walking the list. */

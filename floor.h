@@ -1,6 +1,10 @@
 #ifndef FLOOR_H
 #define FLOOR_H
 
+/*
+ * floor.h - One floor's hall buttons and FIFO waiting queue (linked list).
+ */
+
 #include "passenger.h"
 
 /*
@@ -32,5 +36,11 @@ void floor_print_queue(const Floor* floor);
 
 /* Count passengers in queue (walks the list). */
 int floor_queue_size(const Floor* floor);
+
+/*
+ * Remove up to maxCount passengers assigned to elevatorId (FIFO within assignment).
+ * Returns head of detached list; caller owns nodes.
+ */
+Passenger* floor_take_assigned_passengers(Floor* floor, int elevatorId, int maxCount);
 
 #endif /* FLOOR_H */

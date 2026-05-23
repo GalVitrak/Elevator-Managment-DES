@@ -8,114 +8,64 @@ How to use the Elevator DES program without reading source code.
 
 1. Clone: `git clone https://github.com/GalVitrak/Elevator-Managment-DES.git`
 2. Build: `make` (or Visual Studio)
-3. Run from repository root (where `config.txt` is created)
+3. Run from repository root (where `config.txt` / `random_seed.txt` are read/written)
 
 ---
 
-## Starting the program
+## Menu overview
 
-```bash
-des_elevator.exe    # Windows
-./des_elevator      # Linux / macOS
-```
+| Option | Purpose |
+|--------|---------|
+| **1** | Small interactive sim: configure, add requests, **run** |
+| **2** | Load `config.txt`, init sim (no run) |
+| **3** | Save `config.txt` |
+| **4** | Add one manual request (sim must exist) |
+| **5** | Print elevators, queues, building grid, FEL |
+| **6** | Configure building + generate **`random_seed.txt`** |
+| **7** | Load seed + **run** full simulation |
+| **8** | Exit |
 
-You see:
-
-```text
---- Elevator Management System (DES) ---
-1. Start new simulation
-...
-```
+**Recommended for presentation:** **6** → **7**, then open `simulation_results.txt`.
 
 ---
 
 ## Menu option 1 — Start new simulation
 
-**Use when:** you want to configure, add requests, and **run** the simulation in one flow.
+Configure building, enter passenger requests manually, run DES once.
 
-### Steps
+- Floors above ground (0 = ground only, up to 150 above)
+- Underground floors (optional, display -1 .. -N)
+- Elevators (1–100), capacity (1–20), max time, request count
 
-1. Enter number of **floors** (2–50)  
-2. Enter number of **elevators** (1–10)  
-3. Enter **capacity** per elevator (1–20)  
-4. Enter **max simulation time** in seconds (positive integer)  
-5. Enter how many **passenger requests** to create (0–50)  
-6. For each request: **source floor** and **destination floor** (0-based)
-
-### After completion
-
-- Simulation runs automatically  
-- Log written to `simulation_log.txt`  
-- Menu returns — use option 5 to inspect state  
-
-### Example
-
-| Step | Input |
-|------|-------|
-| Floors | 5 |
-| Elevators | 2 |
-| Capacity | 10 |
-| Max time | 100 |
-| Requests | 2 |
-| Request 1 | 0 → 2 |
-| Request 2 | 4 → 1 |
+Produces `simulation_log.txt`; statistics appended at end of run.
 
 ---
 
-## Menu option 2 — Load configuration
+## Menu option 6 — Generate random seed file
 
-Loads `config.txt` from current directory and initializes simulation **without running**.
+Prints allowed ranges, then prompts for full building + workload:
 
-### Required file format
+- Writes **`random_seed.txt`** (config + seed + passenger list)
+- Does **not** run simulation
 
-```ini
-num_floors=5
-num_elevators=2
-capacity=10
-max_simulation_time=1000.00
-```
-
-Copy from `config.txt.example` if needed.
-
-**Note:** After load, use option 1 or add requests (option 4); option 1 re-initializes if you start fresh.
+Use before option **7** for repeatable stress tests.
 
 ---
 
-## Menu option 3 — Save configuration
+## Menu option 7 — Load seed and run
 
-Writes current settings to `config.txt`.
+Loads `random_seed.txt`, runs `simulation_run()` to completion (or until `max_simulation_time`).
 
-- If simulation was initialized, saves active sim settings  
-- Otherwise saves default/template values  
+Outputs:
 
----
-
-## Menu option 4 — Add passenger request manually
-
-**Requires:** simulation already initialized (option 1 or 2 first).
-
-Enter source and destination floors. Passenger is queued and `PASSENGER_CALL` event scheduled.
-
-**Does not auto-run** full DES unless you trigger `simulation_run` via option 1. For class demo, prefer **option 1**.
+- **`simulation_log.txt`** — event trace  
+- **`simulation_results.txt`** — service rate, waits, SLA, per-passenger table, utilization  
 
 ---
 
 ## Menu option 5 — Print system state
 
-Displays:
-
-- Current simulation time and max time  
-- Each elevator: floor, direction, status, doors, load  
-- Each floor: queue size, waiting passengers  
-- **Future Event List** — pending events  
-
-Use before/after runs to explain DES to audience.
-
----
-
-## Menu option 6 — Exit
-
-Clean shutdown: frees memory, closes log file.
+Shows simulation time, each elevator, floor queues, **building grid**, and pending FEL events.
 
 ---
 
@@ -123,26 +73,22 @@ Clean shutdown: frees memory, closes log file.
 
 | Display | Meaning |
 |---------|---------|
-| 0 | Ground / entrance |
-| 1 | First floor above ground |
-| … | … |
-| n−1 | Top floor |
+| 0 | Ground |
+| 1 … N | Above ground |
+| -1 … -K | Basement levels (if configured) |
 
-**Destination must differ from source.**
+Destination should differ from source (same-floor trips handled separately).
 
 ---
 
-## Log file
+## Results file (key lines)
 
-**Path:** `simulation_log.txt` (same folder as executable)
-
-**Format:**
-
-```text
-[t=0.00][INFO] message here
-```
-
-Open with any text editor. Useful for reports and debugging.
+| Line | Meaning |
+|------|---------|
+| Service rate | % of requests completed |
+| Maximum queue wait | Longest call-to-boarding time |
+| Queue waits over SLA | Count over 180 s (`MAX_QUEUE_WAIT_SECONDS`) |
+| Per-passenger table | Queue, travel, total trip per ID |
 
 ---
 
@@ -150,21 +96,18 @@ Open with any text editor. Useful for reports and debugging.
 
 | Message | Cause | Fix |
 |---------|-------|-----|
-| Invalid input. Please enter an integer. | Non-numeric menu input | Enter whole numbers |
-| Value must be between X and Y. | Out of range | Use allowed range |
-| Invalid floor in passenger request | Floor < 0 or ≥ numFloors | Check floor count |
-| Failed to open config file | Missing `config.txt` | Copy example file |
-| No idle elevator available | All cabs busy | Expected in phase 1; wait for phase 2 |
+| Invalid input | Non-numeric | Enter integers |
+| Value must be between X and Y | Out of range | See menu **6** limits |
+| No idle elevator available | All cabs busy at dispatch instant | Normal under load; later events may assign |
+| Failed to load random_seed.txt | Missing file | Run menu **6** first |
 
 ---
 
 ## Tips for demonstrations
 
-- Use **5 floors, 2 elevators, 1 request** for clearest output  
-- Delete old log before demo for clean file  
-- Use option **5** to show empty FEL at end  
-
-See [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
+- **Quick logic demo:** option **1**, 5 floors, 2 elevators, 1–2 requests  
+- **Impressive metrics:** option **6** → **7** (e.g. 20 elevators, 450 requests)  
+- See [HOW_TO_PRESENT.md](HOW_TO_PRESENT.md) and [DEMO_SCRIPT.md](DEMO_SCRIPT.md)
 
 ---
 
@@ -172,15 +115,15 @@ See [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
 
 | Problem | Solution |
 |---------|----------|
-| Program closes immediately | Run from terminal, not double-click |
-| Config not found | Run from repo root; copy `config.txt.example` |
-| Build fails | Install GCC or open VS project |
-| Hebrew path issues | Use short path or move project to ASCII path |
+| Program closes immediately | Run from terminal |
+| Linker permission denied | Close `des_elevator.exe`, rebuild |
+| Config/seed not found | Run from repo root |
+| Non-ASCII path issues | Use ASCII path on Windows |
 
 ---
 
 ## Further reading
 
-- [DEMO_SCRIPT.md](DEMO_SCRIPT.md) — presentation walkthrough  
+- [HOW_TO_PRESENT.md](HOW_TO_PRESENT.md) — presentation build guide  
 - [FAQ.md](FAQ.md) — common questions  
-- [CONFIGURATION.md](CONFIGURATION.md) — config details
+- [CONFIGURATION.md](CONFIGURATION.md) — config keys and constants

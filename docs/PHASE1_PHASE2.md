@@ -1,119 +1,73 @@
-# Phase 1 vs Phase 2 — Project Split
+# Project Status — Foundation & Advanced Features
+
+Historical note: development started as “Phase 1 foundation + Phase 2 realism.” **Most Phase 2 items are now implemented** on `main`.
 
 ---
 
-## Phase 1 (Foundation) — COMPLETE
+## Implemented (current `main`)
 
-**Branch reference:** `feature/des-foundation-half` (merged to `main`)
-
-### Delivered
-
-| Area | Status |
-|------|--------|
-| Project structure | ✓ 17 source/header files |
-| Enums & structs | ✓ All core types |
-| Future Event List | ✓ Sorted linked list |
-| Floor queues | ✓ FIFO linked list |
-| DES loop | ✓ `simulation_run` |
-| Event handlers | ✓ 5 skeleton handlers |
-| Dispatch | ✓ First idle elevator |
-| Movement | ✓ Instant (placeholder) |
-| Logging | ✓ Console + file |
-| Config I/O | ✓ `config.txt` |
-| Menu UI | ✓ Options 1–6 |
-| Input validation | ✓ Ranges enforced |
-| Documentation | ✓ 20+ markdown files |
-| GitHub | ✓ Repo + main branch |
-
-### Intentional simplifications
-
-Documented, not bugs:
-
-- Instant elevator travel  
-- One tracked passenger per cab  
-- No statistics at end  
-- No overload check  
-- No emergency events  
+| Area | Status | Where |
+|------|--------|--------|
+| DES loop + FEL | ✓ | `simulation_run`, `event.c` |
+| Travel time + doors | ✓ | `simulation_schedule_elevator_travel`, `constants.h` |
+| Multi-passenger cabs | ✓ | `Elevator.onboardHead`, capacity checks |
+| Wait-priority dispatch | ✓ | `simulation_find_elevator_for_pickup`, batch round, clustering |
+| On-the-way pickup | ✓ | `elevator_will_serve_call` (fleets &lt; 30) |
+| 180 s queue SLA reporting | ✓ | `statistics.c`, `MAX_QUEUE_WAIT_SECONDS` |
+| Random seed + spread | ✓ | `random_seed.c`, menus **6** / **7** |
+| Statistics + results file | ✓ | `simulation_results.txt` |
+| Building grid (2D) | ✓ | `building_grid.c`, menu **5** |
+| Underground + 100 elevators | ✓ | `constants.h`, menu **6** |
+| Documentation + presentation guide | ✓ | `docs/HOW_TO_PRESENT.md` |
 
 ---
 
-## Phase 2 (Advanced) — PLANNED
+## Optional extensions (not required for demo)
 
-**Start here:** [TODO.md](../TODO.md)
-
-### Planned features
-
-```mermaid
-pie title Phase 2 effort (estimate)
-    "Movement & timing" : 25
-    "Dispatch algorithms" : 25
-    "Statistics & reports" : 20
-    "Capacity & multi-passenger" : 15
-    "Energy & emergency" : 15
-```
-
-| ID | Feature | Priority |
-|----|---------|----------|
-| P0-1 | Realistic movement | Must |
-| P0-2 | Advanced dispatch | Must |
-| P0-3 | Overload detection | Must |
-| P0-4 | Statistics engine | Must |
-| P1-1 | Full lifecycle timing | Should |
-| P1-2 | Multiple passengers per cab | Should |
-| P1-3 | Energy model | Should |
-| P1-4 | Utilization reports | Should |
-| P2-1 | Emergency / maintenance | Could |
-| P2-2 | SCAN / LOOK scheduling | Could |
+| Feature | Priority | See |
+|---------|----------|-----|
+| Energy model | Optional | [TODO.md](../TODO.md) |
+| Emergency / maintenance | Optional | `simulation.c` TODO |
+| Mid-flight retarget at SLA breach | Optional | [TODO.md](../TODO.md) |
+| Doc sync (legacy pages) | Low | Ongoing |
 
 ---
 
-## Side-by-side comparison (for slides)
+## Comparison table (for slides: before vs now)
 
-| Aspect | Phase 1 | Phase 2 |
-|--------|---------|---------|
-| Travel | Instant | Delay per floor |
-| Dispatch | First idle | Nearest / SCAN |
-| Passengers/cab | 1 tracked | List / array |
-| End report | Log only | Statistics summary |
-| Hall buttons | Set | Clear properly |
-| Elevator states | IDLE/MOVING used | + MAINTENANCE |
-| Events | 5 types | + emergency types? |
+| Aspect | Early foundation | Current system |
+|--------|------------------|----------------|
+| Travel | Instant assign | Delay = floors × 1 s + doors |
+| Dispatch | First idle | ETA, batch, clustering, zones |
+| Passengers/cab | One | Linked list, up to `capacity` |
+| End report | Log only | `simulation_results.txt` + per-passenger table |
+| Max scale | Small demo | Up to 171 floors, 100 elevators, 2000 requests |
 
 ---
 
 ## Timeline narrative (presentation)
 
 ```text
-Week 1-2:  Architecture, structs, FEL, queues     [Phase 1]
-Week 3-4:  Handlers, menu, logging, config       [Phase 1]
-Week 5-6:  Movement + dispatch                   [Phase 2]
-Week 7-8:  Statistics + polish + final demo      [Phase 2]
+Architecture, FEL, queues          → done
+Handlers, menu, logging, config    → done
+Movement, doors, ride-sharing      → done
+Dispatch + SLA + statistics        → done
+Optional: energy, emergencies      → backlog
 ```
 
-Adjust dates to your course schedule.
+---
+
+## Definition of “project complete” (course)
+
+- [x] Non-zero travel times  
+- [x] Dispatch when cabs are busy (queue + retry)  
+- [x] Capacity enforced  
+- [x] Statistics file + SLA line  
+- [x] README + presentation docs  
+- [ ] Energy / emergency (optional)
 
 ---
 
-## Handoff quality
+## Handoff
 
-Phase 1 leaves:
-
-- Compilable codebase  
-- `TODO` comments at exact extension points  
-- [TODO.md](../TODO.md) prioritized backlog  
-- Architecture docs for continuity  
-
-**Teammate should not rewrite from scratch.**
-
----
-
-## Definition of “project complete”
-
-After phase 2:
-
-- [ ] Non-zero travel times  
-- [ ] Dispatch when all cabs busy  
-- [ ] Capacity enforced  
-- [ ] Printed statistics  
-- [ ] README updated  
-- [ ] Presentation includes before/after comparison  
+New work should **extend** `simulation.c` / `statistics.c`, not rewrite the FEL or floor queues. Read [ARCHITECTURE.md](ARCHITECTURE.md) and [ALGORITHMS.md](ALGORITHMS.md) first.

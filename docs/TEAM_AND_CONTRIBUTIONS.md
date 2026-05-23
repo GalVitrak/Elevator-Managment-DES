@@ -8,14 +8,14 @@ Template for documenting who did what — **fill in names before presentation**.
 
 | Name | Role | Email / contact |
 |------|------|-----------------|
-| [Name 1] | Phase 1 lead, DES engine | |
-| [Name 2] | Phase 2 lead, dispatch & stats | |
+| [Name 1] | DES engine, events, simulation | |
+| [Name 2] | Dispatch, statistics, seeds | |
 | [Name 3] | Documentation & demo | |
 | [Name 4] | Testing & integration | |
 
 ---
 
-## Contribution matrix (phase 1)
+## Contribution matrix
 
 | Area | Owner | Files |
 |------|-------|-------|

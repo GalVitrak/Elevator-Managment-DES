@@ -1,5 +1,6 @@
 /*
  * file_manager.c - Load/save simulation parameters (config.txt)
+ * PRESENTATION: File I/O requirement — config_load / config_save; display floor mapping.
  */
 #include "file_manager.h"
 #include "constants.h"
@@ -12,9 +13,59 @@
 void config_set_defaults(SimulationConfig* config)
 {
     config->numFloors = DEFAULT_NUM_FLOORS;
+    config->numUndergroundFloors = 0;
     config->numElevators = DEFAULT_NUM_ELEVATORS;
     config->capacity = DEFAULT_CAPACITY;
     config->maxSimulationTime = DEFAULT_MAX_TIME;
+}
+
+int config_total_internal_floors(const SimulationConfig* config)
+{
+    if (config == NULL) {
+        return 0;
+    }
+    return config->numFloors + config->numUndergroundFloors;
+}
+
+int config_display_floor_min(const SimulationConfig* config)
+{
+    if (config == NULL) {
+        return 0;
+    }
+    return -config->numUndergroundFloors;
+}
+
+int config_display_floor_max(const SimulationConfig* config)
+{
+    if (config == NULL) {
+        return 0;
+    }
+    return config->numFloors - 1;
+}
+
+int config_display_to_index(const SimulationConfig* config, int displayFloor)
+{
+    if (config == NULL) {
+        return displayFloor;
+    }
+    return displayFloor + config->numUndergroundFloors;
+}
+
+int config_index_to_display(const SimulationConfig* config, int index)
+{
+    if (config == NULL) {
+        return index;
+    }
+    return index - config->numUndergroundFloors;
+}
+
+int config_validate_display_floor(const SimulationConfig* config, int displayFloor)
+{
+    if (config == NULL) {
+        return 0;
+    }
+    return displayFloor >= config_display_floor_min(config) &&
+           displayFloor <= config_display_floor_max(config);
 }
 
 /*
@@ -27,6 +78,13 @@ int config_validate(const SimulationConfig* config)
         return 0;
     }
     if (config->numFloors < MIN_FLOORS || config->numFloors > MAX_FLOORS) {
+        return 0;
+    }
+    if (config->numUndergroundFloors < MIN_UNDERGROUND_FLOORS ||
+        config->numUndergroundFloors > MAX_UNDERGROUND_FLOORS) {
+        return 0;
+    }
+    if (config_total_internal_floors(config) > MAX_TOTAL_FLOORS) {
         return 0;
     }
     if (config->numElevators < MIN_ELEVATORS || config->numElevators > MAX_ELEVATORS) {
@@ -64,6 +122,7 @@ int config_save(const SimulationConfig* config, const char* filename)
     }
 
     fprintf(file, "num_floors=%d\n", config->numFloors);
+    fprintf(file, "num_underground=%d\n", config->numUndergroundFloors);
     fprintf(file, "num_elevators=%d\n", config->numElevators);
     fprintf(file, "capacity=%d\n", config->capacity);
     fprintf(file, "max_simulation_time=%.2f\n", config->maxSimulationTime);
@@ -104,6 +163,7 @@ int config_load(SimulationConfig* config, const char* filename)
     FILE* file;
     char line[MAX_NAME_LEN * 2];
     int floorsSet = 0;
+    int undergroundSet = 0;
     int elevatorsSet = 0;
     int capacitySet = 0;
     int timeSet = 0;
@@ -121,6 +181,8 @@ int config_load(SimulationConfig* config, const char* filename)
     while (fgets(line, sizeof(line), file) != NULL) {
         if (parse_int_line(line, "num_floors=", &config->numFloors)) {
             floorsSet = 1;
+        } else if (parse_int_line(line, "num_underground=", &config->numUndergroundFloors)) {
+            undergroundSet = 1;
         } else if (parse_int_line(line, "num_elevators=", &config->numElevators)) {
             elevatorsSet = 1;
         } else if (parse_int_line(line, "capacity=", &config->capacity)) {
@@ -135,6 +197,10 @@ int config_load(SimulationConfig* config, const char* filename)
     if (!floorsSet || !elevatorsSet || !capacitySet || !timeSet) {
         log_message(0.0, LOG_ERROR, "Config file is missing required fields");
         return 0;
+    }
+
+    if (!undergroundSet) {
+        config->numUndergroundFloors = 0;
     }
 
     if (!config_validate(config)) {

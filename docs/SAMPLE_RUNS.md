@@ -1,126 +1,106 @@
 # Sample Runs — Expected Behavior
 
 Reference outputs for presentation backup and testing.  
-Exact log order may vary slightly if multiple events share `t=0.0` (insertion order).
+Times spread across the horizon when using menu **6**/**7** (not all at `t=0`).
 
 ---
 
-## Run A — Single passenger (0 → 3)
+## Run A — Single passenger (menu 1, small building)
 
-### Input (menu 1)
+### Input
 
 | Field | Value |
 |-------|-------|
-| Floors | 5 |
+| Floors above ground | 4 (display 0–4) |
 | Elevators | 2 |
 | Capacity | 10 |
-| Max time | 100 |
-| Requests | 1 |
-| Source | 0 |
-| Destination | 3 |
+| Max time | 200 |
+| Request | 0 → 3 |
 
-### Expected behavior (narrative)
+### Expected behavior
 
-1. Passenger 1 created, enqueued on floor 0  
-2. `PASSENGER_CALL` processed → elevator 0 assigned (first idle)  
-3. Instant arrival at floor 0 → doors open → passenger boards  
-4. Doors close → instant travel to floor 3  
-5. Arrival at 3 → doors open → passenger exits  
-6. FEL empty → simulation ends  
+1. Passenger queued on floor 0  
+2. Dispatch assigns a cab; travel to floor 0 takes ~0 s if already there or several seconds  
+3. Doors open → board → doors close → travel to floor 3 (~3 s + doors)  
+4. Alight at 3; FEL empty when done  
 
-### Example log excerpts (representative)
+### Log patterns to point at
 
 ```text
-[t=0.00][INFO] Elevator DES foundation started
-[t=0.00][INFO] Simulation started
-[t=0.00][INFO] Passenger 1 request queued: floor 0 -> 3
-[t=0.00][INFO] Event created: PASSENGER_CALL (elev=-1 pass=1 floor=0)
-[t=0.00][INFO] Event handled: PASSENGER_CALL
-[t=0.00][INFO] Processing call for passenger 1 on floor 0
-[t=0.00][INFO] Assigning elevator 0 to floor 0
-[t=0.00][INFO] Event created: ELEVATOR_ARRIVAL (elev=0 pass=1 floor=0)
-[t=0.00][INFO] Event handled: ELEVATOR_ARRIVAL
-[t=0.00][INFO] Elevator 0 arrived at floor 0
-[t=0.00][INFO] Event created: DOORS_OPEN (elev=0 pass=1 floor=0)
-[t=0.00][INFO] Event handled: DOORS_OPEN
-[t=0.00][INFO] Doors opened
-[t=0.00][INFO] Passenger boarded elevator
-[t=0.00][INFO] Event created: DOORS_CLOSE (elev=0 pass=1 floor=3)
-...
-[t=0.00][INFO] Simulation finished at t=0.00
+Simulation started
+Processing call for passenger ...
+Elevator N traveling 0 -> 3 (... arrives t=...)
+Elevator N doors opened at floor ... (onboard: ...)
+Batch: elevator ... <- passenger ...   [if batch dispatch logs]
+Simulation finished at t=...
+>>> Simulation summary saved to: simulation_results.txt
 ```
 
-*Note: With instant movement, many events occur at `t=0.0`; phase 2 will spread times.*
+---
 
-### Final state (option 5)
+## Run B — Stress test (menu 6 → 7)
 
-- Elevator 0: floor 3, IDLE, 0 passengers  
-- All floor queues empty  
-- FEL size: 0  
+### Example configuration
+
+| Field | Example |
+|-------|---------|
+| Floors above ground | 100 |
+| Elevators | 20 |
+| Capacity | 16 |
+| Requests | 450 |
+| Max time | 7200 |
+
+### Expected results (order of magnitude)
+
+| Metric | Typical |
+|--------|---------|
+| Service rate | ~100% if fleet sized for load |
+| Max queue wait | Under 180 s when SLA met |
+| Queue waits over SLA | 0 |
+| Simulation end | Before max time if all served |
+
+Your exact numbers depend on seed and fleet size.
 
 ---
 
-## Run B — Load config then add passenger
+## Run C — Overload teaching example
 
-### Steps
+| Field | Value |
+|-------|-------|
+| Elevators | 1 |
+| Requests | 500+ |
 
-1. Copy `config.txt.example` → `config.txt`  
-2. Menu `2` (load)  
-3. Menu `4` — source 2, destination 4  
-4. Menu `1` NOT required — to **run** DES you still need option 1 OR call run from code path  
-
-**Important:** Option 4 only **schedules** request; it does **not** run `simulation_run` unless events are processed. For presentation, prefer **option 1** which runs automatically.
-
-### Teaching point
-
-> “Option 4 is for adding requests to an initialized sim; option 1 seeds and runs in one flow.”
+Expect **low service rate**, long waits — demonstrates capacity limits, not dispatch bugs.
 
 ---
 
-## Run C — Invalid input (validation demo)
+## Run D — Invalid input
 
 | Input | Expected |
 |-------|----------|
-| Source = 99 | Error: invalid floor |
-| Source = destination = 2 | Warning: same floor |
-| Floors = 1 | Rejected (min 2) |
-
-Shows `read_int_in_range` and `simulation_validate_floor`.
+| Out-of-range floor | Re-prompt (menu **6**) |
+| Bad menu choice | “Choose 1-8” |
 
 ---
 
-## Run D — No idle elevator (conceptual)
+## Run E — No cab at one instant
 
-With 1 elevator and two simultaneous requests (phase 1):
+Under heavy load, log may show:
 
-1. First request takes elevator 0  
-2. Second may log: `No idle elevator available - request queued`  
+```text
+No idle elevator available - will retry when a cab is free
+```
 
-Passenger 2 remains on floor queue until phase 2 dispatch improves.
-
----
-
-## Run E — Max time cutoff
-
-Set `max_simulation_time=0.01` with many delayed events (phase 2).  
-In phase 1, simulation often ends before limit because events finish at `t=0`.
-
----
-
-## Comparing console vs log file
-
-They should match line-for-line (except startup before logger).  
-Use `fc simulation_log.txt` backup copy on Windows for diff.
+Passenger should still be served later if horizon and fleet allow.
 
 ---
 
 ## Screenshot checklist for slides
 
-Capture:
+1. Menu **7** run finishing message  
+2. `simulation_results.txt` — service rate + SLA line  
+3. Snippet of per-passenger table  
+4. Optional: menu **5** building grid  
+5. Code: `simulation_run` loop (IDE screenshot)
 
-1. Menu on screen  
-2. Mid-run log (assignment line visible)  
-3. `simulation_log.txt` in editor  
-4. Option 5 state dump with empty FEL  
-
-Store in `docs/images/` if team adds screenshots later.
+See [HOW_TO_PRESENT.md](HOW_TO_PRESENT.md).

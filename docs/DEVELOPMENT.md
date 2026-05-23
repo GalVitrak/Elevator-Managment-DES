@@ -129,7 +129,7 @@ DES-Elevator/                 (repo root)
 ├── Makefile
 ├── config.txt.example
 ├── README.md
-├── TODO.md                   Phase 2 handoff
+├── TODO.md                   Status & optional extensions
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── DEVELOPMENT.md        (this file)

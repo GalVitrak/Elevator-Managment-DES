@@ -73,7 +73,7 @@ The FEL (also called **pending event list** or **calendar**) holds tuples:
 | Cancel | *not implemented* | — |
 | Next event | `event_list_pop_earliest` | O(1) |
 
-For coursework building sizes (few elevators, dozens of passengers), O(n) insert is acceptable. Phase 2 could use a binary heap for O(log n).
+For coursework building sizes (up to 100 elevators, 2000 requests), O(n) FEL insert is acceptable. A binary heap would be an optional optimization.
 
 ---
 
@@ -82,7 +82,7 @@ For coursework building sizes (few elevators, dozens of passengers), O(n) insert
 When handler runs at time `t`, it may schedule new events at:
 
 - `t` — same moment (different tie-breaking order in list)
-- `t + δ` — after door delay (e.g. 0.5 s in phase 1)
+- `t + δ` — after door delay (`DOOR_OPEN_SECONDS`, `DOOR_CLOSE_SECONDS` in `constants.h`)
 
 **Causality:** never schedule at time `< currentTime` (unless modeling retroactive — we don't).
 
@@ -125,9 +125,9 @@ Second condition discards events beyond horizon (see `simulation_run`).
 
 ## 8. Randomness (future)
 
-Phase 1: **deterministic** — passenger list entered by user.
+**Deterministic seeds:** `random_seed.txt` from menu 6 with spread arrivals across the horizon.
 
-Phase 2 (optional): inter-arrival times from distribution (exponential), use `rand()` and schedule `PASSENGER_CALL` at `t + interarrival`.
+Manual entry via menu 1 or config remains supported.
 
 ---
 
@@ -163,15 +163,16 @@ Same FEL pattern — different domain logic in handlers.
 
 ---
 
-## 12. Phase 1 simplifications (teaching choices)
+## 12. Implementation choices (current build)
 
-| Simplification | Pedagogical reason |
-|----------------|-------------------|
-| Instant movement | Isolate event scheduling before physics |
-| First-idle dispatch | Simple correct policy to replace later |
-| Single passenger per cab tracking | Reduce state complexity early |
+| Choice | Rationale |
+|--------|-----------|
+| Sorted linked-list FEL | Simple, correct for coursework scale |
+| Event-time clock advance | Classic DES; not real-time animation |
+| Batch dispatch between events | Reduces starvation under load |
+| 180 s queue-wait SLA | Reported in `simulation_results.txt` |
 
-Documented in README and TODO — not accidental bugs.
+Early prototypes used instant travel and first-idle dispatch; **current code** uses scheduled travel and ETA/batch dispatch. See [ALGORITHMS.md](ALGORITHMS.md).
 
 ---
 

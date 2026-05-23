@@ -16,7 +16,7 @@ Preprocessor configuration (no `.c` file).
 | `LOG_FILE_NAME` | `simulation_log.txt` | Log path |
 | `CONFIG_FILE_NAME` | `config.txt` | Config path |
 | `MIN_FLOORS` / `MAX_FLOORS` | 2 / 50 | Validation |
-| `MIN_ELEVATORS` / `MAX_ELEVATORS` | 1 / 10 | Validation |
+| `MIN_ELEVATORS` / `MAX_ELEVATORS` | 1 / 100 | Validation |
 | `MIN_CAPACITY` / `MAX_CAPACITY` | 1 / 20 | Validation |
 | `DEFAULT_NUM_FLOORS` | 5 | Interactive defaults |
 | `DEFAULT_NUM_ELEVATORS` | 2 | Interactive defaults |
@@ -84,7 +84,8 @@ double maxSimulationTime;
 |----------|-------------|
 | `elevator_init(e, id, capacity)` | Idle at floor 0 |
 | `elevator_find_first_idle(array, count)` | Index or -1 |
-| `elevator_assign_to_floor(e, floor)` | **Phase 1: instant move** |
+| `elevator_assign_to_floor(e, floor)` | Set MOVING + target; position updates on arrival |
+| `elevator_will_serve_call` | On-the-way pickup eligibility (direction + not passed floor) |
 | `elevator_print(e)` | Debug |
 
 ---

@@ -52,7 +52,8 @@ Operations: insert sorted, pop head, enqueue, dequeue.
 |-------|------------|----------|
 | `Simulation.elevators` | `calloc(numElevators, sizeof(Elevator))` | `simulation_destroy` |
 | `Simulation.floors` | `calloc(numFloors, sizeof(Floor))` | `simulation_destroy` |
-| `activePassengersByElevator` | `calloc(numElevators, sizeof(Passenger*))` | `simulation_destroy` |
+| `Elevator.floorStops` | per-cab `calloc(numFloors, …)` | `elevator_stops_destroy` / `simulation_destroy` |
+| `Simulation.floorDemand` | `calloc(numFloors, sizeof(int))` | `simulation_destroy` |
 
 ---
 
@@ -96,8 +97,8 @@ Used for limits, defaults, and file paths across modules.
 ## Requirement 8: Readable functions
 
 - Short handlers per event type  
-- Named helpers: `simulation_schedule_event`, `elevator_find_first_idle`  
-- Comments at TODO sites for phase 2  
+- Named helpers: `simulation_schedule_event`, `simulation_find_elevator_for_pickup`  
+- `=== PRESENTATION ===` blocks in source for demo walkthrough  
 
 ---
 

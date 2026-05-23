@@ -1,6 +1,10 @@
 #ifndef STATISTICS_H
 #define STATISTICS_H
 
+/*
+ * statistics.h - Metrics collected during DES; written to simulation_results.txt.
+ */
+
 #include "passenger.h"
 
 struct Simulation; /* defined in simulation.h */
@@ -25,7 +29,9 @@ typedef struct {
     int maxQueueLength;
     int totalRequests;
     int totalServed;
+    int passengersBoarded;
     int passengersWhoWaited;
+    int slaQueueViolations;
     double sumWaitTime;
     double maxWaitTime;
     double sumTotalTripTime;

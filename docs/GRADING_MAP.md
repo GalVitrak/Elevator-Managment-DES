@@ -18,7 +18,8 @@ Default branch: `main`
 | 1 | structs | `elevator.h`, `passenger.h`, `floor.h`, `event.h`, `simulation.h` | All `typedef struct` |
 | 2 | strings | `logger.c`, `file_manager.c` | `log_message`, `fgets` |
 | 3 | linked lists | `event.c`, `floor.c` | `event_list_insert_sorted`, `floor_enqueue_passenger` |
-| 4 | dynamic arrays | `simulation.c` | `simulation_init` (`calloc`) |
+| 4 | dynamic arrays | `simulation.c`, `statistics.c` | `calloc`, `realloc` trips |
+| 4b | 2D matrix | `building_grid.c` | `building_grid_init` |
 | 5 | file I/O | `file_manager.c` | `config_save`, `config_load` |
 | 6 | preprocessor | `constants.h` | `#define` macros |
 | 7 | modular code | All `*.c` / `*.h` pairs | — |
@@ -34,8 +35,8 @@ Default branch: `main`
 make && ./des_elevator
 ```
 
-Menu **1** → demo simulation.  
-Artifact: **`simulation_log.txt`**
+Menu **6** → **7** → stress demo (recommended).  
+Artifacts: **`simulation_results.txt`**, **`simulation_log.txt`**
 
 ---
 
@@ -44,19 +45,20 @@ Artifact: **`simulation_log.txt`**
 | Document | Purpose |
 |----------|---------|
 | [DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md) | Master index |
-| [PRESENTATION_GUIDE.md](PRESENTATION_GUIDE.md) | How to present |
+| [HOW_TO_PRESENT.md](HOW_TO_PRESENT.md) | Slides, snippets, demo |
+| [PRESENTATION_GUIDE.md](PRESENTATION_GUIDE.md) | Timing |
 | [PRESENTATION_SLIDES.md](PRESENTATION_SLIDES.md) | Slide content |
 | [DES_THEORY.md](DES_THEORY.md) | Theory |
 | [FAQ.md](FAQ.md) | Q&A |
 
 ---
 
-## Phase split
+## Project status
 
-| Phase | Completion | Doc |
-|-------|------------|-----|
-| 1 | ~50% | [PHASE1_PHASE2.md](PHASE1_PHASE2.md) |
-| 2 | Planned | [TODO.md](../TODO.md) |
+| Area | Status | Doc |
+|------|--------|-----|
+| Core DES + dispatch + stats | Complete | [PHASE1_PHASE2.md](PHASE1_PHASE2.md) |
+| Optional extensions | Backlog | [TODO.md](../TODO.md) |
 
 ---
 

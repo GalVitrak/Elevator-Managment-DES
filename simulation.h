@@ -1,6 +1,7 @@
 #ifndef SIMULATION_H
 #define SIMULATION_H
 
+#include "building_grid.h"
 #include "elevator.h"
 #include "floor.h"
 #include "event.h"
@@ -8,13 +9,14 @@
 #include "statistics.h"
 
 /*
- * Central simulation state: clock, building, Future Event List, and tracking.
- * activePassengersByElevator[i]: passenger currently on elevator i (phase 1: at most one).
+ * PRESENTATION: Root struct — ties together FEL, floors, elevators, stats, grid.
+ * Passengers on each cab: Elevator.onboardHead (ride-sharing linked list).
  */
 typedef struct Simulation {
     double currentTime;
     double maxSimulationTime;
-    int numFloors;
+    int numFloors;          /* internal indices: 0 .. numFloors-1 */
+    int groundFloorIndex;   /* internal index for display floor 0 */
     int numElevators;
     int elevatorCapacity;
     Elevator* elevators;
@@ -22,10 +24,11 @@ typedef struct Simulation {
     EventList eventList;
     int nextPassengerId;
     SimulationConfig config;
-    Passenger** activePassengersByElevator;
     SimulationStats stats;
-    int nextDispatchElevator;   /* round-robin index for fair cab assignment */
-    int nextDispatchFloor;      /* round-robin start when picking a waiting queue */
+    int nextDispatchFloor;
+    BuildingGrid buildingView;  /* dynamic elevators x floors matrix (display) */
+    int numZones;               /* floor bands for zone-biased dispatch (1 = off) */
+    int* floorDemand;           /* call count per floor index (idle reposition) */
 } Simulation;
 
 /*

@@ -1,8 +1,11 @@
 /*
- * main.c - Program entry point and console menu for the elevator DES
+ * main.c - Program entry point and console menu
  *
- * Reads user choices, drives configuration load/save, seeds passenger requests,
- * and calls simulation_run() for option 1. Does not contain DES logic itself.
+ * PRESENTATION: No DES logic here — only I/O. Demo paths:
+ *   1 = small manual sim   5 = print state (grid + FEL)
+ *   6 = configure + write random_seed.txt   7 = load seed + simulation_run()
+ *
+ * DES engine lives in simulation.c.
  */
 #include "simulation.h"
 #include "constants.h"
@@ -30,61 +33,166 @@ static void print_menu(void)
 }
 
 /*
- * read_int_in_range - Read one integer from stdin after prompt.
- * Discards rest of line after input. Returns 1 and sets *out if value in [minVal,maxVal].
- * Returns 0 on scanf failure or out-of-range (prints error message).
+ * read_int_in_range - Read one integer from stdin; retry until value is in [minVal, maxVal].
  */
-static int read_int_in_range(const char* prompt, int minVal, int maxVal, int* out)
+static void read_int_in_range(const char* prompt, int minVal, int maxVal, int* out)
 {
     int value;
     int readCount;
 
-    printf("%s", prompt);
-    readCount = scanf("%d", &value);
-    while (getchar() != '\n') {
-        /* discard rest of line */
-    }
+    for (;;) {
+        printf("%s", prompt);
+        readCount = scanf("%d", &value);
+        while (getchar() != '\n') {
+        }
 
-    if (readCount != 1) {
-        printf("Invalid input. Please enter an integer.\n");
+        if (readCount != 1) {
+            printf("Invalid input. Please enter an integer.\n");
+            continue;
+        }
+        if (value < minVal || value > maxVal) {
+            printf("Value must be between %d and %d. Try again.\n", minVal, maxVal);
+            continue;
+        }
+
+        *out = value;
+        return;
+    }
+}
+
+static void print_configuration_limits(void)
+{
+    printf("\n--- Allowed values ---\n");
+    printf("  Floors above ground (ground=0 is extra): %d-%d\n",
+           MIN_FLOORS_ABOVE_GROUND, MAX_FLOORS_ABOVE_GROUND);
+    printf("  Underground floors (display -1 .. -N, 0=none): %d-%d\n",
+           MIN_UNDERGROUND_FLOORS, MAX_UNDERGROUND_FLOORS);
+    printf("  Max internal levels (above + underground): %d\n", MAX_TOTAL_FLOORS);
+    printf("  Elevators: %d-%d\n", MIN_ELEVATORS, MAX_ELEVATORS);
+    printf("  Capacity per elevator: %d-%d\n", MIN_CAPACITY, MAX_CAPACITY);
+    printf("  Max simulation time (seconds): 1-100000\n");
+    printf("  Random passenger requests (this menu): %d-%d\n",
+           MIN_SEED_REQUESTS, MAX_SEED_REQUESTS);
+}
+
+/*
+ * read_display_floor - Read a building floor number (ground=0, negative=basement).
+ */
+static int read_display_floor(const Simulation* sim, const char* prompt, int* outDisplay)
+{
+    int display;
+    int minDisplay;
+    int maxDisplay;
+
+    if (sim == NULL || outDisplay == NULL) {
         return 0;
     }
-    if (value < minVal || value > maxVal) {
-        printf("Value must be between %d and %d.\n", minVal, maxVal);
+
+    minDisplay = config_display_floor_min(&sim->config);
+    maxDisplay = config_display_floor_max(&sim->config);
+
+    read_int_in_range(prompt, minDisplay, maxDisplay, &display);
+
+    if (!config_validate_display_floor(&sim->config, display)) {
+        printf("Invalid floor for this building.\n");
         return 0;
     }
 
-    *out = value;
+    *outDisplay = display;
+    return 1;
+}
+
+static int read_display_floor_from_config(const SimulationConfig* config,
+                                          const char* prompt, int* outIndex)
+{
+    int display;
+    int index;
+
+    if (config == NULL || outIndex == NULL) {
+        return 0;
+    }
+
+    read_int_in_range(prompt,
+                      config_display_floor_min(config),
+                      config_display_floor_max(config),
+                      &display);
+
+    index = config_display_to_index(config, display);
+    *outIndex = index;
     return 1;
 }
 
 /*
  * configure_interactively - Ask user for floors, elevators, capacity, max time.
- * Fills config struct; leaves defaults if any prompt fails validation.
+ * Invalid entries are re-prompted (setup is not cancelled).
  */
 static void configure_interactively(SimulationConfig* config)
 {
-    int floors;
+    int floorsAboveGround;  /* user count excluding ground; ground (0) added below */
+    int underground;
     int elevators;
     int capacity;
     int maxTimeInt;
+    char prompt[96];
 
     config_set_defaults(config);
 
-    if (!read_int_in_range("Number of floors: ", MIN_FLOORS, MAX_FLOORS, &floors)) {
-        return;
-    }
-    if (!read_int_in_range("Number of elevators: ", MIN_ELEVATORS, MAX_ELEVATORS, &elevators)) {
-        return;
-    }
-    if (!read_int_in_range("Elevator capacity: ", MIN_CAPACITY, MAX_CAPACITY, &capacity)) {
-        return;
-    }
-    if (!read_int_in_range("Max simulation time (seconds): ", 1, 100000, &maxTimeInt)) {
-        return;
+    printf("\n--- Building shape ---\n");
+    printf("Ground is always floor 0. Enter how many floors are ABOVE ground (not counting ground).\n");
+    printf("Example: 100 -> ground (0) plus floors 1..100 (101 levels total).\n");
+    snprintf(prompt, sizeof(prompt),
+             "Floors above ground (%d-%d): ",
+             MIN_FLOORS_ABOVE_GROUND, MAX_FLOORS_ABOVE_GROUND);
+    read_int_in_range(prompt, MIN_FLOORS_ABOVE_GROUND, MAX_FLOORS_ABOVE_GROUND,
+                      &floorsAboveGround);
+
+    printf("Basement levels use negative floor numbers (-1, -2, ...). Enter 0 for no basement.\n");
+    snprintf(prompt, sizeof(prompt),
+             "Underground floors below ground (%d-%d): ",
+             MIN_UNDERGROUND_FLOORS, MAX_UNDERGROUND_FLOORS);
+    read_int_in_range(prompt, MIN_UNDERGROUND_FLOORS, MAX_UNDERGROUND_FLOORS,
+                      &underground);
+
+    for (;;) {
+        config->numFloors = floorsAboveGround + 1;
+        config->numUndergroundFloors = underground;
+        if (config_validate(config)) {
+            break;
+        }
+        printf("Building too large (max %d internal levels). Adjust floors and try again.\n",
+               MAX_TOTAL_FLOORS);
+        snprintf(prompt, sizeof(prompt),
+                 "Floors above ground (%d-%d): ",
+                 MIN_FLOORS_ABOVE_GROUND, MAX_FLOORS_ABOVE_GROUND);
+        read_int_in_range(prompt, MIN_FLOORS_ABOVE_GROUND, MAX_FLOORS_ABOVE_GROUND,
+                          &floorsAboveGround);
+        snprintf(prompt, sizeof(prompt),
+                 "Underground floors below ground (%d-%d): ",
+                 MIN_UNDERGROUND_FLOORS, MAX_UNDERGROUND_FLOORS);
+        read_int_in_range(prompt, MIN_UNDERGROUND_FLOORS, MAX_UNDERGROUND_FLOORS,
+                          &underground);
     }
 
-    config->numFloors = floors;
+    printf("Building: %d above ground + ground -> display floors %d .. %d",
+           floorsAboveGround,
+           config_display_floor_min(config),
+           config_display_floor_max(config));
+    if (underground > 0) {
+        printf(" (plus basement %d .. -1)", -underground);
+    }
+    printf(" (%d internal levels).\n", config_total_internal_floors(config));
+
+    snprintf(prompt, sizeof(prompt), "Number of elevators (%d-%d): ",
+             MIN_ELEVATORS, MAX_ELEVATORS);
+    read_int_in_range(prompt, MIN_ELEVATORS, MAX_ELEVATORS, &elevators);
+
+    snprintf(prompt, sizeof(prompt), "Elevator capacity (%d-%d): ",
+             MIN_CAPACITY, MAX_CAPACITY);
+    read_int_in_range(prompt, MIN_CAPACITY, MAX_CAPACITY, &capacity);
+
+    read_int_in_range("Max simulation time in seconds (1-100000): ", 1, 100000,
+                      &maxTimeInt);
+
     config->numElevators = elevators;
     config->capacity = capacity;
     config->maxSimulationTime = (double)maxTimeInt;
@@ -96,22 +204,27 @@ static void configure_interactively(SimulationConfig* config)
  */
 static void add_passenger_interactive(Simulation* sim)
 {
-    int source;
-    int destination;
+    int sourceDisplay;
+    int destDisplay;
+    int sourceIndex;
+    int destIndex;
 
     if (sim == NULL || sim->numFloors == 0) {
         printf("Initialize simulation configuration first (option 1 or 2).\n");
         return;
     }
 
-    if (!read_int_in_range("Source floor: ", 0, sim->numFloors - 1, &source)) {
+    if (!read_display_floor(sim, "Source floor (ground=0, negative=basement): ",
+                            &sourceDisplay)) {
         return;
     }
-    if (!read_int_in_range("Destination floor: ", 0, sim->numFloors - 1, &destination)) {
+    if (!read_display_floor(sim, "Destination floor: ", &destDisplay)) {
         return;
     }
 
-    simulation_add_passenger_request(sim, source, destination);
+    sourceIndex = config_display_to_index(&sim->config, sourceDisplay);
+    destIndex = config_display_to_index(&sim->config, destDisplay);
+    simulation_add_passenger_request(sim, sourceIndex, destIndex);
 }
 
 /*
@@ -126,10 +239,6 @@ static void start_simulation_interactive(Simulation* sim, SimulationConfig* conf
     int destination;
 
     configure_interactively(config);
-    if (!config_validate(config)) {
-        printf("Invalid configuration.\n");
-        return;
-    }
 
     simulation_destroy(sim);
     if (!simulation_init(sim, config)) {
@@ -137,17 +246,22 @@ static void start_simulation_interactive(Simulation* sim, SimulationConfig* conf
         return;
     }
 
-    if (!read_int_in_range("How many passenger requests to seed? (0-50): ",
-                           0, 50, &requestCount)) {
-        return;
+    {
+        char prompt[96];
+        snprintf(prompt, sizeof(prompt),
+                 "How many passenger requests to seed? (0-%d): ",
+                 MAX_SEED_REQUESTS);
+        read_int_in_range(prompt, 0, MAX_SEED_REQUESTS, &requestCount);
     }
 
     for (i = 0; i < requestCount; i++) {
         printf("Request %d:\n", i + 1);
-        if (!read_int_in_range("  Source floor: ", 0, sim->numFloors - 1, &source)) {
+        if (!read_display_floor_from_config(&sim->config,
+                                            "  Source floor (ground=0): ", &source)) {
             return;
         }
-        if (!read_int_in_range("  Destination floor: ", 0, sim->numFloors - 1, &destination)) {
+        if (!read_display_floor_from_config(&sim->config,
+                                            "  Destination floor: ", &destination)) {
             return;
         }
         simulation_add_passenger_request(sim, source, destination);
@@ -166,35 +280,30 @@ static void generate_random_seed_interactive(Simulation* sim, SimulationConfig* 
 {
     SeedScenario scenario;
     int numRequests;
-    int seedInput;
-    unsigned int randomSeed;
     double avgInterArrival;
     int runNow;
 
     memset(&scenario, 0, sizeof(scenario));
 
     printf("\n--- Generate random seed scenario ---\n");
+    printf("This saves building settings + random passenger trips to %s\n", SEED_FILE_NAME);
+    print_configuration_limits();
     configure_interactively(config);
-    if (!config_validate(config)) {
-        printf("Invalid configuration.\n");
-        return;
-    }
 
-    if (!read_int_in_range("How many random passenger requests? (0-100): ",
-                           MIN_SEED_REQUESTS, MAX_SEED_REQUESTS, &numRequests)) {
-        return;
+    {
+        char prompt[96];
+        snprintf(prompt, sizeof(prompt),
+                 "How many random passenger requests (%d-%d): ",
+                 MIN_SEED_REQUESTS, MAX_SEED_REQUESTS);
+        read_int_in_range(prompt, MIN_SEED_REQUESTS, MAX_SEED_REQUESTS, &numRequests);
     }
-
-    if (!read_int_in_range("Random seed (0 = use current time): ", 0, 2147483647, &seedInput)) {
-        return;
-    }
-    randomSeed = (unsigned int)seedInput;
 
     avgInterArrival = seed_compute_auto_inter_arrival(config, numRequests);
     printf("Auto avg seconds between arrivals (from timing model): %.2f\n",
            avgInterArrival);
 
-    if (!seed_generate_random(&scenario, config, numRequests, randomSeed)) {
+    /* randomSeed 0 => seed_generate_random uses clock; value is stored in the seed file */
+    if (!seed_generate_random(&scenario, config, numRequests, 0)) {
         printf("Failed to generate random requests.\n");
         seed_scenario_free(&scenario);
         return;
@@ -210,13 +319,10 @@ static void generate_random_seed_interactive(Simulation* sim, SimulationConfig* 
         printf("Configuration also saved to %s\n", CONFIG_FILE_NAME);
     }
 
-    printf("Saved %d random requests to %s (random_seed=%u)\n",
+    printf("Saved %d random requests to %s (clock seed %u — use option 7 to replay)\n",
            scenario.numRequests, SEED_FILE_NAME, scenario.randomSeed);
 
-    if (!read_int_in_range("Run simulation now? (1=yes, 0=no): ", 0, 1, &runNow)) {
-        seed_scenario_free(&scenario);
-        return;
-    }
+    read_int_in_range("Run simulation now? (1=yes, 0=no): ", 0, 1, &runNow);
 
     if (runNow == 1) {
         if (!seed_apply_to_simulation(sim, &scenario)) {

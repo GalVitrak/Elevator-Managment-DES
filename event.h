@@ -1,6 +1,11 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+/*
+ * event.h - Future Event List (FEL) types
+ * PRESENTATION: Five event types drive all state changes; Event is a linked-list node.
+ */
+
 /* Types of discrete events processed by the simulation engine. */
 typedef enum {
     EVENT_PASSENGER_CALL,
@@ -12,7 +17,8 @@ typedef enum {
 
 /*
  * One node in the Future Event List (FEL).
- * elevatorId / passengerId: use -1 when not applicable.
+ * elevatorId / passengerId: use -1 when not applicable (e.g. door events
+ * serve the whole cab; logs list onboard passengers instead of pass=).
  * floor: meaning depends on event type (source, destination, or current floor).
  */
 typedef struct Event {

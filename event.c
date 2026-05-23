@@ -1,5 +1,8 @@
 /*
  * event.c - Future Event List (FEL): sorted linked list of pending DES events
+ *
+ * PRESENTATION: Classic DES structure — event_list_insert_sorted keeps list
+ * ordered by time; event_list_pop_earliest returns the head (next event to process).
  */
 #include "event.h"
 
@@ -36,6 +39,7 @@ Event* event_create(double time, EventType type, int elevatorId,
 }
 
 /*
+ * === PRESENTATION: FEL insert (linked list by time) ===
  * event_list_insert_sorted - Insert so times are non-decreasing from head to tail.
  * Equal times are placed after existing events with the same time (stable-ish order).
  */

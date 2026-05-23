@@ -36,7 +36,10 @@ void statistics_on_passenger_boarded(SimulationStats* stats, const Passenger* pa
 void statistics_on_passenger_served(SimulationStats* stats, const Passenger* passenger,
                                     double exitTime);
 
-/* Close integrals to sim end time and print formatted report (console + log file). */
-void statistics_finalize_and_print(SimulationStats* stats, const struct Simulation* sim);
+/*
+ * Close integrals, print summary to console, write simulation_results.txt,
+ * and append the same summary to simulation_log.txt. Returns 1 if report file OK.
+ */
+int statistics_finalize_and_print(SimulationStats* stats, const struct Simulation* sim);
 
 #endif /* STATISTICS_H */

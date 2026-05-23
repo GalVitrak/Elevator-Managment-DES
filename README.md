@@ -52,6 +52,8 @@ In DES, the clock jumps to the next scheduled event. Between events, nothing cha
 
 **Reading the code?** Every function in `*.c` and public API in `*.h` has inline comments explaining what it does.
 
+**DES course concept (Hebrew):** [docs/DES_COURSE_HE.md](docs/DES_COURSE_HE.md) — clock jumps event-to-event (no real-time wait); loop picks lowest `T` from the Future Event List (`simulation_run` + `event_list_pop_earliest`).
+
 ---
 
 ## What is implemented (Phase 1)

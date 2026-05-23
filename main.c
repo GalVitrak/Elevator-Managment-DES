@@ -260,7 +260,11 @@ static void load_seed_and_run_interactive(Simulation* sim, SimulationConfig* con
 }
 
 /*
- * main - Initialize logging, run menu loop until exit, then free simulation and close log.
+ * main - Menu only; DES engine is simulation_run() in simulation.c.
+ *
+ * DES is NOT real-time: simulation_run() jumps currentTime from event to event
+ * (lowest T in Future Event List). No sleep() between events. See docs/DES_COURSE_HE.md.
+ *
  * Option 2 loads config and inits sim without running.
  * Option 3 saves config from current sim or defaults.
  */

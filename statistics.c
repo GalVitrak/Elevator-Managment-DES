@@ -214,26 +214,54 @@ static void statistics_print_to_file(FILE* out, const SimulationStats* stats,
     fprintf(out, "\n=================================\n");
 }
 
-void statistics_finalize_and_print(SimulationStats* stats, const Simulation* sim)
+/*
+ * statistics_finalize_and_print - End of every simulation_run(): show summary and save to files.
+ *   - stdout (console)
+ *   - STATS_REPORT_FILE (simulation_results.txt) — full report, overwrite each run
+ *   - LOG_FILE_NAME (simulation_log.txt) — append same report at end of run
+ */
+int statistics_finalize_and_print(SimulationStats* stats, const Simulation* sim)
 {
     FILE* reportFile;
+    FILE* logAppend;
     double simDuration;
+    int fileOk = 0;
 
     if (stats == NULL || sim == NULL) {
-        return;
+        return 0;
     }
 
     simDuration = sim->currentTime;
     statistics_advance_to_time(stats, sim, simDuration);
 
+    /* Dedicated results file (for submission / reports) */
     reportFile = fopen(STATS_REPORT_FILE, "w");
     if (reportFile != NULL) {
         statistics_print_to_file(reportFile, stats, sim, simDuration);
         fclose(reportFile);
-        log_message(sim->currentTime, LOG_INFO, "Simulation results written to file");
+        fileOk = 1;
     } else {
-        log_message(sim->currentTime, LOG_WARNING, "Could not write simulation results file");
+        log_message(sim->currentTime, LOG_ERROR, "Could not write simulation results file");
+    }
+
+    /* Also append summary into the simulation log */
+    logAppend = fopen(LOG_FILE_NAME, "a");
+    if (logAppend != NULL) {
+        fprintf(logAppend, "\n");
+        statistics_print_to_file(logAppend, stats, sim, simDuration);
+        fclose(logAppend);
+    } else {
+        log_message(sim->currentTime, LOG_WARNING, "Could not append summary to simulation log");
     }
 
     statistics_print_to_file(stdout, stats, sim, simDuration);
+
+    if (fileOk) {
+        printf("\n>>> Simulation summary saved to: %s", STATS_REPORT_FILE);
+        printf(" (also appended to %s)\n\n", LOG_FILE_NAME);
+        log_message(sim->currentTime, LOG_INFO,
+                    "Simulation summary written to results file and log");
+    }
+
+    return fileOk;
 }

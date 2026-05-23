@@ -68,6 +68,7 @@ In DES, the clock jumps to the next scheduled event. Between events, nothing cha
 - **Dispatch**: assign **first idle** elevator
 - **Movement**: **instant** (teleport) — placeholder for realism
 - **Logging**: console + `simulation_log.txt` with simulation timestamps
+- **End-of-run summary**: `simulation_results.txt` (+ same summary appended to the log) after each simulation
 - **Config**: save/load `config.txt`
 - **Console menu** with input validation
 - **TODO markers** in source for phase 2
@@ -268,6 +269,15 @@ Format:
 ```
 
 Levels: `INFO`, `WARN`, `ERROR`. Timestamps use **simulation time**, not wall clock.
+
+### Results summary file
+
+After every run (`simulation_run`), a **bank-style report** is written to:
+
+- **`simulation_results.txt`** — full summary (overwrite each run)
+- **`simulation_log.txt`** — same summary **appended** at the end
+
+The console prints: `>>> Simulation summary saved to: simulation_results.txt`
 
 ---
 

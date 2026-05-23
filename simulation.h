@@ -51,6 +51,13 @@ int simulation_run(Simulation* sim);
 void simulation_add_passenger_request(Simulation* sim, int sourceFloor,
                                       int destinationFloor);
 
+/*
+ * Schedule a passenger to arrive at arrivalTime (DES event only — not all at t=0).
+ * Passenger is created when the call event fires.
+ */
+void simulation_schedule_passenger_arrival(Simulation* sim, double arrivalTime,
+                                           int sourceFloor, int destinationFloor);
+
 /* Print elevators, all floor queues, and the FEL (menu option 5). */
 void simulation_print_state(const Simulation* sim);
 

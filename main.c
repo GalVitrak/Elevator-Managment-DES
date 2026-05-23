@@ -167,8 +167,11 @@ static void generate_random_seed_interactive(Simulation* sim, SimulationConfig* 
     SeedScenario scenario;
     int numRequests;
     int seedInput;
+    int avgIntervalInput;
     unsigned int randomSeed;
+    double avgInterArrival;
     int runNow;
+    int suggestedInterval;
 
     memset(&scenario, 0, sizeof(scenario));
 
@@ -189,7 +192,22 @@ static void generate_random_seed_interactive(Simulation* sim, SimulationConfig* 
     }
     randomSeed = (unsigned int)seedInput;
 
-    if (!seed_generate_random(&scenario, config, numRequests, randomSeed)) {
+    suggestedInterval = (int)(config->maxSimulationTime / (double)(numRequests + 1));
+    if (suggestedInterval < 1) {
+        suggestedInterval = (int)DEFAULT_AVG_INTER_ARRIVAL;
+    }
+    printf("Suggested avg seconds between arrivals: %d (spread over simulation)\n",
+           suggestedInterval);
+    if (!read_int_in_range(
+            "Avg seconds between passenger arrivals (0 = use suggestion): ",
+            0, 3600, &avgIntervalInput)) {
+        return;
+    }
+    avgInterArrival = (avgIntervalInput > 0) ?
+        (double)avgIntervalInput : (double)suggestedInterval;
+
+    if (!seed_generate_random(&scenario, config, numRequests, randomSeed,
+                              avgInterArrival)) {
         printf("Failed to generate random requests.\n");
         seed_scenario_free(&scenario);
         return;

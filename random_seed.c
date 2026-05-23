@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 /* seed_scenario_free - Free request array and clear scenario fields. */
 void seed_scenario_free(SeedScenario* scenario)
@@ -47,11 +48,35 @@ static void pick_random_floor_pair(int numFloors, int* source, int* dest)
 /*
  * seed_generate_random - Build random requests for a validated config.
  */
+/*
+ * random_exponential_gap - Sample next inter-arrival time (exponential distribution).
+ */
+static double random_exponential_gap(double meanSeconds)
+{
+    double u;
+    double gap;
+
+    if (meanSeconds <= 0.0) {
+        meanSeconds = DEFAULT_AVG_INTER_ARRIVAL;
+    }
+
+    u = (double)rand() / (double)RAND_MAX;
+    if (u >= 1.0) {
+        u = 0.999999;
+    }
+    gap = -log(1.0 - u) * meanSeconds;
+    return gap;
+}
+
 int seed_generate_random(SeedScenario* scenario, const SimulationConfig* config,
-                         int numRequests, unsigned int randomSeed)
+                         int numRequests, unsigned int randomSeed,
+                         double avgInterArrivalSeconds)
 {
     int i;
     unsigned int seedUsed;
+    double arrivalTime;
+    double maxArrival;
+    double meanGap;
 
     if (scenario == NULL || config == NULL || !config_validate(config)) {
         return 0;
@@ -77,13 +102,33 @@ int seed_generate_random(SeedScenario* scenario, const SimulationConfig* config,
         return 1;
     }
 
+    meanGap = avgInterArrivalSeconds;
+    if (meanGap <= 0.0) {
+        meanGap = config->maxSimulationTime / (double)(numRequests + 1);
+        if (meanGap < 1.0) {
+            meanGap = DEFAULT_AVG_INTER_ARRIVAL;
+        }
+    }
+
+    maxArrival = config->maxSimulationTime * 0.95;
+
     scenario->requests = (PassengerRequest*)malloc((size_t)numRequests * sizeof(PassengerRequest));
     if (scenario->requests == NULL) {
         scenario->numRequests = 0;
         return 0;
     }
 
+    arrivalTime = random_exponential_gap(meanGap) * 0.5;
+
     for (i = 0; i < numRequests; i++) {
+        if (i > 0) {
+            arrivalTime += random_exponential_gap(meanGap);
+        }
+        if (arrivalTime > maxArrival) {
+            arrivalTime = maxArrival;
+        }
+
+        scenario->requests[i].arrivalTime = arrivalTime;
         pick_random_floor_pair(config->numFloors,
                                &scenario->requests[i].sourceFloor,
                                &scenario->requests[i].destinationFloor);
@@ -99,7 +144,8 @@ int seed_generate_random(SeedScenario* scenario, const SimulationConfig* config,
  *   num_floors, num_elevators, capacity, max_simulation_time (same as config.txt)
  *   random_seed=<unsigned>
  *   num_requests=<count>
- *   request=<source>,<destination>  (one per line)
+ *   avg_inter_arrival=<seconds>
+ *   request=<source>,<destination>,<arrivalTime>  (one per line)
  */
 int seed_save_to_file(const SeedScenario* scenario, const char* filename)
 {
@@ -122,11 +168,16 @@ int seed_save_to_file(const SeedScenario* scenario, const char* filename)
     fprintf(file, "max_simulation_time=%.2f\n", scenario->config.maxSimulationTime);
     fprintf(file, "random_seed=%u\n", scenario->randomSeed);
     fprintf(file, "num_requests=%d\n", scenario->numRequests);
+    fprintf(file, "avg_inter_arrival=%.2f\n",
+            scenario->numRequests > 1 ?
+            (scenario->requests[scenario->numRequests - 1].arrivalTime /
+             (double)scenario->numRequests) : 0.0);
 
     for (i = 0; i < scenario->numRequests; i++) {
-        fprintf(file, "request=%d,%d\n",
+        fprintf(file, "request=%d,%d,%.2f\n",
                 scenario->requests[i].sourceFloor,
-                scenario->requests[i].destinationFloor);
+                scenario->requests[i].destinationFloor,
+                scenario->requests[i].arrivalTime);
     }
 
     fclose(file);
@@ -134,14 +185,59 @@ int seed_save_to_file(const SeedScenario* scenario, const char* filename)
     return 1;
 }
 
-static int parse_request_line(const char* line, int* source, int* dest)
+static int parse_request_line(const char* line, int* source, int* dest, double* arrivalTime)
 {
-  int parsed;
-  if (strncmp(line, "request=", 8) != 0) {
+    int parsed2;
+    int parsed3;
+
+    if (strncmp(line, "request=", 8) != 0) {
+        return 0;
+    }
+
+    parsed3 = sscanf(line + 8, "%d,%d,%lf", source, dest, arrivalTime);
+    if (parsed3 == 3) {
+        return 1;
+    }
+
+    parsed2 = sscanf(line + 8, "%d,%d", source, dest);
+    if (parsed2 == 2) {
+        *arrivalTime = 0.0;
+        return 1;
+    }
+
     return 0;
-  }
-  parsed = sscanf(line + 8, "%d,%d", source, dest);
-  return parsed == 2;
+}
+
+/*
+ * seed_stagger_arrivals_if_needed - Old seed files had all arrivals at t=0; spread them out.
+ */
+static void seed_stagger_arrivals_if_needed(SeedScenario* scenario)
+{
+    int i;
+    int allAtZero;
+    double span;
+    double step;
+
+    if (scenario == NULL || scenario->requests == NULL || scenario->numRequests <= 1) {
+        return;
+    }
+
+    allAtZero = 1;
+    for (i = 0; i < scenario->numRequests; i++) {
+        if (scenario->requests[i].arrivalTime > 0.01) {
+            allAtZero = 0;
+            break;
+        }
+    }
+    if (!allAtZero) {
+        return;
+    }
+
+    span = scenario->config.maxSimulationTime * 0.95;
+    step = span / (double)scenario->numRequests;
+    for (i = 0; i < scenario->numRequests; i++) {
+        scenario->requests[i].arrivalTime = step * (double)i;
+    }
 }
 
 /*
@@ -200,12 +296,14 @@ int seed_load_from_file(SeedScenario* scenario, const char* filename)
         } else if (strncmp(line, "request=", 8) == 0) {
             int src;
             int dst;
+            double arrival;
             if (scenario->requests == NULL || requestCount >= requestCapacity) {
                 continue;
             }
-            if (parse_request_line(line, &src, &dst)) {
+            if (parse_request_line(line, &src, &dst, &arrival)) {
                 scenario->requests[requestCount].sourceFloor = src;
                 scenario->requests[requestCount].destinationFloor = dst;
+                scenario->requests[requestCount].arrivalTime = arrival;
                 requestCount++;
             }
         }
@@ -223,6 +321,8 @@ int seed_load_from_file(SeedScenario* scenario, const char* filename)
         log_message(0.0, LOG_WARNING, "Seed file request count mismatch; using parsed count");
         scenario->numRequests = requestCount;
     }
+
+    seed_stagger_arrivals_if_needed(scenario);
 
     log_message(0.0, LOG_INFO, "Random seed scenario loaded from file");
     return 1;
@@ -245,9 +345,10 @@ int seed_apply_to_simulation(Simulation* sim, const SeedScenario* scenario)
     }
 
     for (i = 0; i < scenario->numRequests; i++) {
-        simulation_add_passenger_request(sim,
-                                         scenario->requests[i].sourceFloor,
-                                         scenario->requests[i].destinationFloor);
+        simulation_schedule_passenger_arrival(sim,
+                                              scenario->requests[i].arrivalTime,
+                                              scenario->requests[i].sourceFloor,
+                                              scenario->requests[i].destinationFloor);
     }
 
     return 1;

@@ -18,12 +18,13 @@
  * Internal: only scheduling entry point for new events.
  */
 static void simulation_schedule_event(Simulation* sim, double time, EventType type,
-                                      int elevatorId, int passengerId, int floor)
+                                      int elevatorId, int passengerId, int floor,
+                                      int destinationFloor)
 {
     Event* event;
     char desc[MAX_NAME_LEN * 4];
 
-    event = event_create(time, type, elevatorId, passengerId, floor);
+    event = event_create(time, type, elevatorId, passengerId, floor, destinationFloor);
     if (event == NULL) {
         log_message(sim->currentTime, LOG_ERROR, "Failed to allocate event");
         return;
@@ -59,7 +60,7 @@ static void simulation_schedule_elevator_travel(Simulation* sim, Elevator* eleva
     log_message(sim->currentTime, LOG_INFO, msg);
 
     simulation_schedule_event(sim, arrivalTime, EVENT_ELEVATOR_ARRIVAL,
-                              elevator->id, passengerId, targetFloor);
+                              elevator->id, passengerId, targetFloor, -1);
 }
 
 /*
@@ -233,7 +234,6 @@ void simulation_add_passenger_request(Simulation* sim, int sourceFloor,
     }
 
     floor_enqueue_passenger(&sim->floors[sourceFloor], passenger);
-    statistics_on_passenger_request(&sim->stats, sim);
 
     snprintf(msg, sizeof(msg),
              "Passenger %d request queued: floor %d -> %d",
@@ -241,8 +241,47 @@ void simulation_add_passenger_request(Simulation* sim, int sourceFloor,
     log_message(sim->currentTime, LOG_INFO, msg);
 
     simulation_schedule_event(sim, sim->currentTime, EVENT_PASSENGER_CALL,
-                              -1, passenger->id, sourceFloor);
+                              -1, passenger->id, sourceFloor, destinationFloor);
     sim->nextPassengerId++;
+}
+
+/*
+ * simulation_schedule_passenger_arrival - Schedule future PASSENGER_CALL (staggered arrivals).
+ * Passenger appears in queue only when the event runs at arrivalTime.
+ */
+void simulation_schedule_passenger_arrival(Simulation* sim, double arrivalTime,
+                                           int sourceFloor, int destinationFloor)
+{
+    char msg[MAX_NAME_LEN * 4];
+    int passengerId;
+
+    if (!simulation_validate_floor(sim, sourceFloor) ||
+        !simulation_validate_floor(sim, destinationFloor)) {
+        log_message(sim->currentTime, LOG_ERROR, "Invalid floor in scheduled arrival");
+        return;
+    }
+
+    if (sourceFloor == destinationFloor) {
+        return;
+    }
+
+    if (arrivalTime < 0.0) {
+        arrivalTime = 0.0;
+    }
+    if (arrivalTime > sim->maxSimulationTime) {
+        log_message(sim->currentTime, LOG_WARNING, "Skipping arrival past simulation end");
+        return;
+    }
+
+    passengerId = sim->nextPassengerId;
+    simulation_schedule_event(sim, arrivalTime, EVENT_PASSENGER_CALL,
+                              -1, passengerId, sourceFloor, destinationFloor);
+    sim->nextPassengerId++;
+
+    snprintf(msg, sizeof(msg),
+             "Scheduled passenger %d arrival at t=%.2f: floor %d -> %d",
+             passengerId, arrivalTime, sourceFloor, destinationFloor);
+    log_message(sim->currentTime, LOG_INFO, msg);
 }
 
 /* simulation_print_state - Debug dump: time, elevators, floors, FEL. */
@@ -349,17 +388,29 @@ void handle_passenger_call(Simulation* sim, Event* event)
 {
     int elevatorIndex;
     Elevator* elevator;
+    Passenger* passenger;
     char msg[MAX_NAME_LEN * 4];
     int sourceFloor = event->floor;
     int passengerId = event->passengerId;
 
     if (!simulation_find_passenger_in_queue(&sim->floors[sourceFloor], passengerId)) {
-        log_message(sim->currentTime, LOG_WARNING,
-                    "Passenger not found in floor queue for call event");
-        return;
+        if (event->destinationFloor < 0 ||
+            !simulation_validate_floor(sim, event->destinationFloor)) {
+            log_message(sim->currentTime, LOG_WARNING,
+                        "Passenger not found and no destination in call event");
+            return;
+        }
+
+        passenger = passenger_create(passengerId, sourceFloor, event->destinationFloor,
+                                     sim->currentTime);
+        if (passenger == NULL) {
+            log_message(sim->currentTime, LOG_ERROR, "Failed to create passenger at arrival");
+            return;
+        }
+        floor_enqueue_passenger(&sim->floors[sourceFloor], passenger);
     }
 
-    /* TODO: passenger travel timing and full lifecycle simulation */
+    statistics_on_passenger_request(&sim->stats, sim);
 
     snprintf(msg, sizeof(msg), "Processing call for passenger %d on floor %d",
              passengerId, sourceFloor);
@@ -412,7 +463,7 @@ void handle_elevator_arrival(Simulation* sim, Event* event)
     log_message(sim->currentTime, LOG_INFO, msg);
 
     simulation_schedule_event(sim, sim->currentTime, EVENT_DOORS_OPEN,
-                              elevator->id, event->passengerId, event->floor);
+                              elevator->id, event->passengerId, event->floor, -1);
 }
 
 /*
@@ -441,7 +492,7 @@ void handle_doors_open(Simulation* sim, Event* event)
         passengerOnBoard->destinationFloor == event->floor) {
       /* Arrived at destination - passenger exits */
         simulation_schedule_event(sim, sim->currentTime + 0.2, EVENT_PASSENGER_EXIT,
-                                  elevator->id, passengerOnBoard->id, event->floor);
+                                  elevator->id, passengerOnBoard->id, event->floor, -1);
         return;
     }
 
@@ -457,10 +508,10 @@ void handle_doors_open(Simulation* sim, Event* event)
 
         simulation_schedule_event(sim, sim->currentTime + 0.5, EVENT_DOORS_CLOSE,
                                   elevator->id, waitingPassenger->id,
-                                  waitingPassenger->destinationFloor);
+                                  waitingPassenger->destinationFloor, -1);
     } else {
         simulation_schedule_event(sim, sim->currentTime + 0.5, EVENT_DOORS_CLOSE,
-                                  elevator->id, -1, event->floor);
+                                  elevator->id, -1, event->floor, -1);
     }
 }
 
@@ -525,6 +576,5 @@ void handle_passenger_exit(Simulation* sim, Event* event)
     elevator->direction = DIR_NONE;
 
     simulation_schedule_event(sim, sim->currentTime + 0.5, EVENT_DOORS_CLOSE,
-                              elevator->id, -1, event->floor);
-
+                              elevator->id, -1, event->floor, -1);
 }

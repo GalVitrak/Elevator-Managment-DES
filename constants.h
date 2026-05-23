@@ -47,4 +47,7 @@
 #define DEFAULT_NUM_FLOORS      5
 #define DEFAULT_NUM_ELEVATORS   2
 
+/* Default mean seconds between passenger arrivals (random seed generation) */
+#define DEFAULT_AVG_INTER_ARRIVAL   30.0
+
 #endif /* CONSTANTS_H */

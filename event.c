@@ -18,7 +18,7 @@ void event_list_init(EventList* list)
  * next is NULL; caller inserts via event_list_insert_sorted.
  */
 Event* event_create(double time, EventType type, int elevatorId,
-                    int passengerId, int floor)
+                    int passengerId, int floor, int destinationFloor)
 {
     Event* event = (Event*)malloc(sizeof(Event));
     if (event == NULL) {
@@ -30,6 +30,7 @@ Event* event_create(double time, EventType type, int elevatorId,
     event->elevatorId = elevatorId;
     event->passengerId = passengerId;
     event->floor = floor;
+    event->destinationFloor = destinationFloor;
     event->next = NULL;
     return event;
 }
@@ -134,12 +135,22 @@ void event_list_print(const EventList* list)
 
     printf("Future Event List (%d events):\n", list->size);
     for (current = list->head; current != NULL; current = current->next) {
-        printf("  [%d] t=%.2f %s elev=%d pass=%d floor=%d\n",
-               index++,
-               current->time,
-               event_type_to_string(current->type),
-               current->elevatorId,
-               current->passengerId,
-               current->floor);
+        if (current->type == EVENT_PASSENGER_CALL && current->destinationFloor >= 0) {
+            printf("  [%d] t=%.2f %s pass=%d %d->%d\n",
+                   index++,
+                   current->time,
+                   event_type_to_string(current->type),
+                   current->passengerId,
+                   current->floor,
+                   current->destinationFloor);
+        } else {
+            printf("  [%d] t=%.2f %s elev=%d pass=%d floor=%d\n",
+                   index++,
+                   current->time,
+                   event_type_to_string(current->type),
+                   current->elevatorId,
+                   current->passengerId,
+                   current->floor);
+        }
     }
 }

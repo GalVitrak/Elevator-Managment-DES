@@ -21,6 +21,7 @@ typedef struct Event {
     int elevatorId;
     int passengerId;
     int floor;
+    int destinationFloor;   /* for PASSENGER_CALL: target floor; else -1 */
     struct Event* next;
 } Event;
 
@@ -38,7 +39,7 @@ void event_list_destroy(EventList* list);
 
 /* Allocate one event; caller must insert into list or free on failure path. */
 Event* event_create(double time, EventType type, int elevatorId,
-                    int passengerId, int floor);
+                    int passengerId, int floor, int destinationFloor);
 
 /* Insert event so list stays sorted by non-decreasing time. */
 void event_list_insert_sorted(EventList* list, Event* event);

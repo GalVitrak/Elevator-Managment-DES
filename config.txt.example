@@ -1,0 +1,4 @@
+num_floors=5
+num_elevators=2
+capacity=10
+max_simulation_time=1000.00

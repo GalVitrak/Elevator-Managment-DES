@@ -1,0 +1,24 @@
+# Build outputs
+*.o
+*.obj
+*.exe
+des_elevator
+x64/
+Debug/
+Release/
+*.ilk
+*.pdb
+
+# Logs and local config (optional - config can be committed as example)
+simulation_log.txt
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.VC.db
+*.opendb
+
+# OS
+Thumbs.db
+Desktop.ini

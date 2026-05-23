@@ -22,6 +22,7 @@ Passenger* passenger_create(int id, int source, int destination, double requestT
     passenger->sourceFloor = source;
     passenger->destinationFloor = destination;
     passenger->requestTime = requestTime;
+    passenger->boardTime = -1.0;
     passenger->status = PASSENGER_WAITING;
     passenger->next = NULL;
     return passenger;

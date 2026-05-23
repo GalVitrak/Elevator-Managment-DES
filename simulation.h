@@ -5,12 +5,13 @@
 #include "floor.h"
 #include "event.h"
 #include "file_manager.h"
+#include "statistics.h"
 
 /*
  * Central simulation state: clock, building, Future Event List, and tracking.
  * activePassengersByElevator[i]: passenger currently on elevator i (phase 1: at most one).
  */
-typedef struct {
+typedef struct Simulation {
     double currentTime;
     double maxSimulationTime;
     int numFloors;
@@ -22,6 +23,7 @@ typedef struct {
     int nextPassengerId;
     SimulationConfig config;
     Passenger** activePassengersByElevator;
+    SimulationStats stats;
 } Simulation;
 
 /*

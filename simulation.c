@@ -143,6 +143,8 @@ int simulation_init(Simulation* sim, const SimulationConfig* config)
     }
 
     event_list_init(&sim->eventList);
+    statistics_reset(&sim->stats, sim->numElevators);
+    sim->stats.lastSampleTime = 0.0;
     return 1;
 }
 
@@ -182,6 +184,8 @@ void simulation_destroy(Simulation* sim)
 
     free(sim->activePassengersByElevator);
     sim->activePassengersByElevator = NULL;
+
+    statistics_destroy(&sim->stats);
 }
 
 /* simulation_reset - Destroy and re-initialize with the same config snapshot. */
@@ -229,6 +233,7 @@ void simulation_add_passenger_request(Simulation* sim, int sourceFloor,
     }
 
     floor_enqueue_passenger(&sim->floors[sourceFloor], passenger);
+    statistics_on_passenger_request(&sim->stats, sim);
 
     snprintf(msg, sizeof(msg),
              "Passenger %d request queued: floor %d -> %d",
@@ -289,6 +294,7 @@ int simulation_run(Simulation* sim)
             break;
         }
 
+        statistics_advance_to_time(&sim->stats, sim, event->time);
         sim->currentTime = event->time;
         simulation_dispatch_event(sim, event);
         free(event);
@@ -297,8 +303,8 @@ int simulation_run(Simulation* sim)
     snprintf(msg, sizeof(msg), "Simulation finished at t=%.2f", sim->currentTime);
     log_message(sim->currentTime, LOG_INFO, msg);
 
-  /* TODO: statistics calculations - wait times, throughput */
-  /* TODO: utilization reports and performance analytics */
+    statistics_finalize_and_print(&sim->stats, sim);
+
   /* TODO: emergency events and OUT_OF_SERVICE / MAINTENANCE handling */
 
     return 1;
@@ -429,6 +435,8 @@ void handle_doors_open(Simulation* sim, Event* event)
     if (waitingPassenger != NULL) {
       /* TODO: overload detection when passengerCount >= capacity */
         waitingPassenger->status = PASSENGER_IN_ELEVATOR;
+        waitingPassenger->boardTime = sim->currentTime;
+        statistics_on_passenger_boarded(&sim->stats, waitingPassenger, sim->currentTime);
         elevator->passengerCount++;
         sim->activePassengersByElevator[elevator->id] = waitingPassenger;
         log_message(sim->currentTime, LOG_INFO, "Passenger boarded elevator");
@@ -492,6 +500,7 @@ void handle_passenger_exit(Simulation* sim, Event* event)
     }
 
     if (passenger != NULL) {
+        statistics_on_passenger_served(&sim->stats, passenger, sim->currentTime);
         passenger->status = PASSENGER_ARRIVED;
         passenger_destroy(passenger);
         sim->activePassengersByElevator[elevator->id] = NULL;
@@ -504,5 +513,4 @@ void handle_passenger_exit(Simulation* sim, Event* event)
     simulation_schedule_event(sim, sim->currentTime + 0.5, EVENT_DOORS_CLOSE,
                               elevator->id, -1, event->floor);
 
-  /* TODO: final polish for passenger exit flow and statistics */
 }

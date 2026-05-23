@@ -19,6 +19,9 @@
 /* Simulated seconds to travel one floor (DES movement model) */
 #define SECONDS_PER_FLOOR   3.0
 
+/* End-of-run summary report (bank-style statistics) */
+#define STATS_REPORT_FILE   "simulation_results.txt"
+
 /* Output file for simulation trace logs */
 #define LOG_FILE_NAME       "simulation_log.txt"
 

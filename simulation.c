@@ -37,6 +37,32 @@ static void simulation_schedule_event(Simulation* sim, double time, EventType ty
 }
 
 /*
+ * simulation_schedule_elevator_travel - Start movement and schedule arrival after travel time.
+ * Uses elevator_travel_time_seconds (SECONDS_PER_FLOOR per floor difference).
+ */
+static void simulation_schedule_elevator_travel(Simulation* sim, Elevator* elevator,
+                                                int passengerId, int targetFloor)
+{
+    double travelTime;
+    double arrivalTime;
+    char msg[MAX_NAME_LEN * 4];
+    int fromFloor = elevator->currentFloor;
+
+    travelTime = elevator_travel_time_seconds(fromFloor, targetFloor);
+    arrivalTime = sim->currentTime + travelTime;
+
+    elevator_assign_to_floor(elevator, targetFloor);
+
+    snprintf(msg, sizeof(msg),
+             "Elevator %d traveling %d -> %d (%.1f s, arrives t=%.2f)",
+             elevator->id, fromFloor, targetFloor, travelTime, arrivalTime);
+    log_message(sim->currentTime, LOG_INFO, msg);
+
+    simulation_schedule_event(sim, arrivalTime, EVENT_ELEVATOR_ARRIVAL,
+                              elevator->id, passengerId, targetFloor);
+}
+
+/*
  * simulation_dispatch_event - Route one event to the correct handler by type.
  * Called after currentTime has been advanced to event->time.
  */
@@ -339,16 +365,11 @@ void handle_passenger_call(Simulation* sim, Event* event)
              elevator->id, sourceFloor);
     log_message(sim->currentTime, LOG_INFO, msg);
 
-    elevator_assign_to_floor(elevator, sourceFloor);
-
-    /* Instant arrival for foundation phase */
-    simulation_schedule_event(sim, sim->currentTime, EVENT_ELEVATOR_ARRIVAL,
-                              elevator->id, passengerId, sourceFloor);
+    simulation_schedule_elevator_travel(sim, elevator, passengerId, sourceFloor);
 }
 
 /*
- * handle_elevator_arrival - Cab reached event->floor; update position, open doors next.
- * TODO phase 2: position updated only here after travel delay, not in assign.
+ * handle_elevator_arrival - Cab reached event->floor after travel time; update position.
  */
 void handle_elevator_arrival(Simulation* sim, Event* event)
 {
@@ -364,12 +385,11 @@ void handle_elevator_arrival(Simulation* sim, Event* event)
     elevator->currentFloor = event->floor;
     elevator->targetFloor = event->floor;
     elevator->status = ELEVATOR_MOVING;
+    elevator->doorState = DOOR_CLOSED;
 
     snprintf(msg, sizeof(msg), "Elevator %d arrived at floor %d",
              elevator->id, event->floor);
     log_message(sim->currentTime, LOG_INFO, msg);
-
-  /* TODO: realistic elevator movement between floors */
 
     simulation_schedule_event(sim, sim->currentTime, EVENT_DOORS_OPEN,
                               elevator->id, event->passengerId, event->floor);
@@ -442,9 +462,7 @@ void handle_doors_close(Simulation* sim, Event* event)
     if (event->passengerId >= 0 && event->floor >= 0 &&
         simulation_validate_floor(sim, event->floor) &&
         sim->activePassengersByElevator[elevator->id] != NULL) {
-        elevator_assign_to_floor(elevator, event->floor);
-        simulation_schedule_event(sim, sim->currentTime, EVENT_ELEVATOR_ARRIVAL,
-                                  elevator->id, event->passengerId, event->floor);
+        simulation_schedule_elevator_travel(sim, elevator, event->passengerId, event->floor);
     } else {
         elevator->status = ELEVATOR_IDLE;
         elevator->direction = DIR_NONE;

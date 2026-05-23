@@ -1,3 +1,6 @@
+/*
+ * logger.c - Dual logging to console and simulation_log.txt
+ */
 #include "logger.h"
 #include "constants.h"
 
@@ -5,6 +8,7 @@
 
 static FILE* logFile = NULL;
 
+/* Map LOG_* enum to short label in log lines. */
 static const char* level_to_string(LogLevel level)
 {
     switch (level) {
@@ -15,6 +19,10 @@ static const char* level_to_string(LogLevel level)
     }
 }
 
+/*
+ * logger_init - Open LOG_FILE_NAME for write (truncates existing file).
+ * If open fails, only console logging works; warning printed to stderr.
+ */
 void logger_init(void)
 {
     if (logFile != NULL) {
@@ -26,6 +34,7 @@ void logger_init(void)
     }
 }
 
+/* logger_close - Close log file handle if open. */
 void logger_close(void)
 {
     if (logFile != NULL) {
@@ -34,6 +43,10 @@ void logger_close(void)
     }
 }
 
+/*
+ * log_message - Format [t=...][LEVEL] message, print to stdout and log file.
+ * fflush file after each line so crashes still leave a trace.
+ */
 void log_message(double simTime, LogLevel level, const char* message)
 {
     char buffer[MAX_NAME_LEN * 4];
@@ -48,6 +61,7 @@ void log_message(double simTime, LogLevel level, const char* message)
     }
 }
 
+/* log_event_created - INFO log when an event is scheduled into the FEL. */
 void log_event_created(double simTime, const char* eventDesc)
 {
     char buffer[MAX_NAME_LEN * 4];
@@ -55,6 +69,7 @@ void log_event_created(double simTime, const char* eventDesc)
     log_message(simTime, LOG_INFO, buffer);
 }
 
+/* log_event_handled - INFO log when an event handler runs. */
 void log_event_handled(double simTime, const char* eventDesc)
 {
     char buffer[MAX_NAME_LEN * 4];

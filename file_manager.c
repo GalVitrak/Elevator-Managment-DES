@@ -1,3 +1,6 @@
+/*
+ * file_manager.c - Load/save simulation parameters (config.txt)
+ */
 #include "file_manager.h"
 #include "constants.h"
 #include "logger.h"
@@ -5,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
+/* config_set_defaults - Apply DEFAULT_* and DEFAULT_MAX_TIME from constants.h. */
 void config_set_defaults(SimulationConfig* config)
 {
     config->numFloors = DEFAULT_NUM_FLOORS;
@@ -13,6 +17,10 @@ void config_set_defaults(SimulationConfig* config)
     config->maxSimulationTime = DEFAULT_MAX_TIME;
 }
 
+/*
+ * config_validate - Check all fields against MIN_* / MAX_* limits.
+ * Returns 1 if valid, 0 if config is NULL or any field out of range.
+ */
 int config_validate(const SimulationConfig* config)
 {
     if (config == NULL) {
@@ -33,6 +41,10 @@ int config_validate(const SimulationConfig* config)
     return 1;
 }
 
+/*
+ * config_save - Write four key=value lines to filename.
+ * Returns 0 if config invalid or file cannot be opened.
+ */
 int config_save(const SimulationConfig* config, const char* filename)
 {
     FILE* file;
@@ -61,6 +73,7 @@ int config_save(const SimulationConfig* config, const char* filename)
     return 1;
 }
 
+/* Return 1 if line starts with key and sscanf reads one integer after it. */
 static int parse_int_line(const char* line, const char* key, int* value)
 {
     int parsed;
@@ -71,6 +84,7 @@ static int parse_int_line(const char* line, const char* key, int* value)
     return parsed == 1;
 }
 
+/* Return 1 if line starts with key and sscanf reads one double after it. */
 static int parse_double_line(const char* line, const char* key, double* value)
 {
     int parsed;
@@ -81,6 +95,10 @@ static int parse_double_line(const char* line, const char* key, double* value)
     return parsed == 1;
 }
 
+/*
+ * config_load - Parse config file line by line; require all four keys.
+ * Validates loaded values before returning success.
+ */
 int config_load(SimulationConfig* config, const char* filename)
 {
     FILE* file;

@@ -50,6 +50,8 @@ In DES, the clock jumps to the next scheduled event. Between events, nothing cha
 
 **Presenting in class?** Read [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) (≈30 min prep).
 
+**Reading the code?** Every function in `*.c` and public API in `*.h` has inline comments explaining what it does.
+
 ---
 
 ## What is implemented (Phase 1)

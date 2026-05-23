@@ -1,3 +1,9 @@
+/*
+ * simulation.c - Discrete Event Simulation engine for the elevator system
+ *
+ * Owns the main DES loop (simulation_run), event scheduling, and all handle_*()
+ * functions that change building state when events fire.
+ */
 #include "simulation.h"
 #include "constants.h"
 #include "logger.h"
@@ -6,6 +12,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * simulation_schedule_event - Create an event and insert it into the FEL.
+ * Logs creation at current sim time (not necessarily at event->time).
+ * Internal: only scheduling entry point for new events.
+ */
 static void simulation_schedule_event(Simulation* sim, double time, EventType type,
                                       int elevatorId, int passengerId, int floor)
 {
@@ -25,6 +36,10 @@ static void simulation_schedule_event(Simulation* sim, double time, EventType ty
     log_event_created(sim->currentTime, desc);
 }
 
+/*
+ * simulation_dispatch_event - Route one event to the correct handler by type.
+ * Called after currentTime has been advanced to event->time.
+ */
 static void simulation_dispatch_event(Simulation* sim, Event* event)
 {
     char desc[MAX_NAME_LEN * 4];
@@ -54,11 +69,17 @@ static void simulation_dispatch_event(Simulation* sim, Event* event)
     }
 }
 
+/* simulation_validate_floor - Return 1 if floor index is valid for this building. */
 int simulation_validate_floor(const Simulation* sim, int floor)
 {
     return floor >= 0 && floor < sim->numFloors;
 }
 
+/*
+ * simulation_init - Allocate elevators, floors, passenger tracking, and init FEL.
+ * Zeros sim, copies config, initializes each elevator and floor.
+ * Returns 0 on bad config or allocation failure (calls destroy on partial alloc).
+ */
 int simulation_init(Simulation* sim, const SimulationConfig* config)
 {
     int i;
@@ -99,6 +120,10 @@ int simulation_init(Simulation* sim, const SimulationConfig* config)
     return 1;
 }
 
+/*
+ * simulation_destroy - Free FEL, floor queues, in-cab passengers, and arrays.
+ * Safe on NULL sim or partially initialized sim.
+ */
 void simulation_destroy(Simulation* sim)
 {
     int i;
@@ -133,6 +158,7 @@ void simulation_destroy(Simulation* sim)
     sim->activePassengersByElevator = NULL;
 }
 
+/* simulation_reset - Destroy and re-initialize with the same config snapshot. */
 void simulation_reset(Simulation* sim)
 {
     SimulationConfig config;
@@ -146,6 +172,11 @@ void simulation_reset(Simulation* sim)
     simulation_init(sim, &config);
 }
 
+/*
+ * simulation_add_passenger_request - Public API to add one ride request.
+ * Creates passenger, enqueues on source floor, schedules PASSENGER_CALL at now.
+ * Increments nextPassengerId after scheduling.
+ */
 void simulation_add_passenger_request(Simulation* sim, int sourceFloor,
                                       int destinationFloor)
 {
@@ -183,6 +214,7 @@ void simulation_add_passenger_request(Simulation* sim, int sourceFloor,
     sim->nextPassengerId++;
 }
 
+/* simulation_print_state - Debug dump: time, elevators, floors, FEL. */
 void simulation_print_state(const Simulation* sim)
 {
     int i;
@@ -204,6 +236,11 @@ void simulation_print_state(const Simulation* sim)
     printf("==========================================\n\n");
 }
 
+/*
+ * simulation_run - DES main loop: process events in time order until done or max time.
+ * 1) Pop earliest event  2) Set currentTime  3) Dispatch handler  4) Free event node.
+ * Stops if next event time exceeds maxSimulationTime (event discarded).
+ */
 int simulation_run(Simulation* sim)
 {
     Event* event;
@@ -241,6 +278,10 @@ int simulation_run(Simulation* sim)
     return 1;
 }
 
+/*
+ * simulation_find_passenger_in_queue - Walk floor queue to find passenger by id.
+ * Used to verify PASSENGER_CALL matches a queued passenger. Returns NULL if missing.
+ */
 static Passenger* simulation_find_passenger_in_queue(Floor* floor, int passengerId)
 {
     Passenger* current = floor->waitingQueueFront;
@@ -253,6 +294,11 @@ static Passenger* simulation_find_passenger_in_queue(Floor* floor, int passenger
     return NULL;
 }
 
+/*
+ * handle_passenger_call - Try to assign first idle elevator to waiting passenger.
+ * Sets hall buttons, moves elevator (instant in phase 1), schedules ELEVATOR_ARRIVAL.
+ * If no idle cab, passenger stays in queue (phase 2: smarter dispatch).
+ */
 void handle_passenger_call(Simulation* sim, Event* event)
 {
     int elevatorIndex;
@@ -300,6 +346,10 @@ void handle_passenger_call(Simulation* sim, Event* event)
                               elevator->id, passengerId, sourceFloor);
 }
 
+/*
+ * handle_elevator_arrival - Cab reached event->floor; update position, open doors next.
+ * TODO phase 2: position updated only here after travel delay, not in assign.
+ */
 void handle_elevator_arrival(Simulation* sim, Event* event)
 {
     Elevator* elevator;
@@ -325,6 +375,11 @@ void handle_elevator_arrival(Simulation* sim, Event* event)
                               elevator->id, event->passengerId, event->floor);
 }
 
+/*
+ * handle_doors_open - Open doors: either drop off at destination or board from queue.
+ * If passenger on board and floor == destination -> schedule PASSENGER_EXIT.
+ * Else dequeue one waiter from this floor and schedule DOORS_CLOSE toward their dest.
+ */
 void handle_doors_open(Simulation* sim, Event* event)
 {
     Elevator* elevator;
@@ -367,6 +422,10 @@ void handle_doors_open(Simulation* sim, Event* event)
     }
 }
 
+/*
+ * handle_doors_close - Close doors; if carrying passenger, move to event->floor (dest)
+ * and schedule another ELEVATOR_ARRIVAL. Otherwise set elevator IDLE.
+ */
 void handle_doors_close(Simulation* sim, Event* event)
 {
     Elevator* elevator;
@@ -394,6 +453,10 @@ void handle_doors_close(Simulation* sim, Event* event)
   /* TODO: energy consumption tracking per trip */
 }
 
+/*
+ * handle_passenger_exit - Remove passenger from cab, free memory, schedule doors close.
+ * event->floor is where exit happens (destination).
+ */
 void handle_passenger_exit(Simulation* sim, Event* event)
 {
     Elevator* elevator;

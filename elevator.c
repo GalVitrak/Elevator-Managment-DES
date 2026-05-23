@@ -1,8 +1,12 @@
+/*
+ * elevator.c - Elevator cab state and simple first-idle dispatch helpers
+ */
 #include "elevator.h"
 #include "logger.h"
 
 #include <stdio.h>
 
+/* elevator_init - Start cab at floor 0, idle, doors closed, empty. */
 void elevator_init(Elevator* elevator, int id, int capacity)
 {
     elevator->id = id;
@@ -15,6 +19,10 @@ void elevator_init(Elevator* elevator, int id, int capacity)
     elevator->passengerCount = 0;
 }
 
+/*
+ * elevator_find_first_idle - Linear search for an available cab.
+ * Requires IDLE status and CLOSED doors (not boarding/alighting).
+ */
 int elevator_find_first_idle(Elevator* elevators, int count)
 {
     int i;
@@ -27,6 +35,11 @@ int elevator_find_first_idle(Elevator* elevators, int count)
     return -1;
 }
 
+/*
+ * elevator_assign_to_floor - Move cab to target floor (phase 1: instantaneous).
+ * Sets direction from current vs target, then sets currentFloor = floor immediately.
+ * TODO phase 2: keep MOVING until a later ELEVATOR_ARRIVAL event fires.
+ */
 void elevator_assign_to_floor(Elevator* elevator, int floor)
 {
     elevator->targetFloor = floor;
@@ -66,6 +79,7 @@ static const char* status_to_string(ElevatorStatus status)
     }
 }
 
+/* elevator_print - One-line status for debug output. */
 void elevator_print(const Elevator* elevator)
 {
     printf("  Elevator %d: floor=%d target=%d dir=%s status=%s door=%s passengers=%d/%d\n",

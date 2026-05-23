@@ -1,8 +1,16 @@
+/*
+ * passenger.c - Passenger entity (linked-list node for floor queues)
+ */
 #include "passenger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * passenger_create - Allocate and initialize a new passenger.
+ * Sets status to WAITING and next to NULL.
+ * Returns NULL if malloc fails.
+ */
 Passenger* passenger_create(int id, int source, int destination, double requestTime)
 {
     Passenger* passenger = (Passenger*)malloc(sizeof(Passenger));
@@ -19,11 +27,13 @@ Passenger* passenger_create(int id, int source, int destination, double requestT
     return passenger;
 }
 
+/* passenger_destroy - Free one passenger struct. */
 void passenger_destroy(Passenger* passenger)
 {
     free(passenger);
 }
 
+/* Convert passenger status enum to string for printing. */
 static const char* status_to_string(PassengerStatus status)
 {
     switch (status) {
@@ -34,6 +44,7 @@ static const char* status_to_string(PassengerStatus status)
     }
 }
 
+/* passenger_print - Print id, route, status, and request time to stdout. */
 void passenger_print(const Passenger* passenger)
 {
     if (passenger == NULL) {

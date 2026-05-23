@@ -1,3 +1,9 @@
+/*
+ * main.c - Program entry point and console menu for the elevator DES
+ *
+ * Reads user choices, drives configuration load/save, seeds passenger requests,
+ * and calls simulation_run() for option 1. Does not contain DES logic itself.
+ */
 #include "simulation.h"
 #include "constants.h"
 #include "logger.h"
@@ -7,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* print_menu - Display numbered options and prompt for selection. */
 static void print_menu(void)
 {
     printf("\n--- Elevator Management System (DES) ---\n");
@@ -19,6 +26,11 @@ static void print_menu(void)
     printf("Select option: ");
 }
 
+/*
+ * read_int_in_range - Read one integer from stdin after prompt.
+ * Discards rest of line after input. Returns 1 and sets *out if value in [minVal,maxVal].
+ * Returns 0 on scanf failure or out-of-range (prints error message).
+ */
 static int read_int_in_range(const char* prompt, int minVal, int maxVal, int* out)
 {
     int value;
@@ -43,6 +55,10 @@ static int read_int_in_range(const char* prompt, int minVal, int maxVal, int* ou
     return 1;
 }
 
+/*
+ * configure_interactively - Ask user for floors, elevators, capacity, max time.
+ * Fills config struct; leaves defaults if any prompt fails validation.
+ */
 static void configure_interactively(SimulationConfig* config)
 {
     int floors;
@@ -71,6 +87,10 @@ static void configure_interactively(SimulationConfig* config)
     config->maxSimulationTime = (double)maxTimeInt;
 }
 
+/*
+ * add_passenger_interactive - Menu option 4: one request if sim already initialized.
+ * Requires prior option 1 or 2; does not run simulation_run by itself.
+ */
 static void add_passenger_interactive(Simulation* sim)
 {
     int source;
@@ -91,6 +111,10 @@ static void add_passenger_interactive(Simulation* sim)
     simulation_add_passenger_request(sim, source, destination);
 }
 
+/*
+ * start_simulation_interactive - Menu option 1: configure, init, seed requests, run DES.
+ * Prints state before and after simulation_run for demonstration.
+ */
 static void start_simulation_interactive(Simulation* sim, SimulationConfig* config)
 {
     int requestCount;
@@ -131,6 +155,11 @@ static void start_simulation_interactive(Simulation* sim, SimulationConfig* conf
     simulation_print_state(sim);
 }
 
+/*
+ * main - Initialize logging, run menu loop until exit, then free simulation and close log.
+ * Option 2 loads config and inits sim without running.
+ * Option 3 saves config from current sim or defaults.
+ */
 int main(void)
 {
     Simulation sim;

@@ -1,14 +1,22 @@
+/*
+ * event.c - Future Event List (FEL): sorted linked list of pending DES events
+ */
 #include "event.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
+/* event_list_init - Empty list, size zero. */
 void event_list_init(EventList* list)
 {
     list->head = NULL;
     list->size = 0;
 }
 
+/*
+ * event_create - Allocate one event node with given fields.
+ * next is NULL; caller inserts via event_list_insert_sorted.
+ */
 Event* event_create(double time, EventType type, int elevatorId,
                     int passengerId, int floor)
 {
@@ -26,6 +34,10 @@ Event* event_create(double time, EventType type, int elevatorId,
     return event;
 }
 
+/*
+ * event_list_insert_sorted - Insert so times are non-decreasing from head to tail.
+ * Equal times are placed after existing events with the same time (stable-ish order).
+ */
 void event_list_insert_sorted(EventList* list, Event* event)
 {
     Event* current;
@@ -60,6 +72,10 @@ void event_list_insert_sorted(EventList* list, Event* event)
     list->size++;
 }
 
+/*
+ * event_list_pop_earliest - Remove list head (minimum time event).
+ * Caller owns returned pointer and must free() after handling.
+ */
 Event* event_list_pop_earliest(EventList* list)
 {
     Event* earliest;
@@ -75,6 +91,7 @@ Event* event_list_pop_earliest(EventList* list)
     return earliest;
 }
 
+/* event_list_destroy - Free all nodes and clear the list. */
 void event_list_destroy(EventList* list)
 {
     Event* current;
@@ -95,6 +112,7 @@ void event_list_destroy(EventList* list)
     list->size = 0;
 }
 
+/* event_type_to_string - Name for logging and debug print. */
 const char* event_type_to_string(EventType type)
 {
     switch (type) {
@@ -107,6 +125,7 @@ const char* event_type_to_string(EventType type)
     }
 }
 
+/* event_list_print - Dump FEL contents to stdout (index, time, type, ids). */
 void event_list_print(const EventList* list)
 {
     const Event* current;

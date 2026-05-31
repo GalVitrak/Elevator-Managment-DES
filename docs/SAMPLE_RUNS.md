@@ -78,8 +78,8 @@ Expect **low service rate**, long waits — demonstrates capacity limits, not di
 
 | Input | Expected |
 |-------|----------|
-| Out-of-range floor | Re-prompt (menu **6**) |
-| Bad menu choice | “Choose 1-8” |
+| Out-of-range floor | Re-prompt (menu **5**) |
+| Bad menu choice | “Choose 1-7” |
 
 ---
 
@@ -97,10 +97,10 @@ Passenger should still be served later if horizon and fleet allow.
 
 ## Screenshot checklist for slides
 
-1. Menu **7** run finishing message  
+1. Menu **6** run finishing message  
 2. `simulation_results.txt` — service rate + SLA line  
 3. Snippet of per-passenger table  
-4. Optional: menu **5** building grid  
+4. Optional: menu **4** building grid  
 5. Code: `simulation_run` loop (IDE screenshot)
 
 See [HOW_TO_PRESENT.md](HOW_TO_PRESENT.md).

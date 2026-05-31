@@ -16,14 +16,13 @@ How to use the Elevator DES program without reading source code.
 
 | Option | Purpose |
 |--------|---------|
-| **1** | Small interactive sim: configure, add requests, **run** |
-| **2** | Load `config.txt`, init sim (no run) |
-| **3** | Save `config.txt` |
-| **4** | Add one manual request (sim must exist) |
-| **5** | Print elevators, queues, building grid, FEL |
-| **6** | Configure building + generate **`random_seed.txt`** |
-| **7** | Load seed + **run** full simulation |
-| **8** | Exit |
+| **1** | Start new simulation in manual mode (initialize only) |
+| **2** | Add one manual request (simulation must exist) |
+| **3** | Run current simulation |
+| **4** | Print elevators, queues, building grid, FEL |
+| **5** | Configure building + generate **`random_seed.txt`** |
+| **6** | Load seed + **run** full simulation |
+| **7** | Exit |
 
 **Recommended for presentation:** **6** → **7**, then open `simulation_results.txt`.
 
@@ -31,17 +30,19 @@ How to use the Elevator DES program without reading source code.
 
 ## Menu option 1 — Start new simulation
 
-Configure building, enter passenger requests manually, run DES once.
+Configure building and initialize a fresh simulation for manual work.
 
 - Floors above ground (0 = ground only, up to 150 above)
 - Underground floors (optional, display -1 .. -N)
-- Elevators (1–100), capacity (1–20), max time, request count
+- Elevators (1–100), capacity (1–20), max time
 
-Produces `simulation_log.txt`; statistics appended at end of run.
+Then use:
+- Option **2** to add manual requests
+- Option **3** to run DES
 
 ---
 
-## Menu option 6 — Generate random seed file
+## Menu option 5 — Generate random seed file
 
 Prints allowed ranges, then prompts for full building + workload:
 
@@ -52,7 +53,7 @@ Use before option **7** for repeatable stress tests.
 
 ---
 
-## Menu option 7 — Load seed and run
+## Menu option 6 — Load seed and run
 
 Loads `random_seed.txt`, runs `simulation_run()` to completion (or until `max_simulation_time`).
 
@@ -63,9 +64,11 @@ Outputs:
 
 ---
 
-## Menu option 5 — Print system state
+## Menu option 4 — Print system state
 
 Shows simulation time, each elevator, floor queues, **building grid**, and pending FEL events.
+
+Useful before and after option **3** (manual mode) or option **6** (seed run).
 
 ---
 
@@ -97,16 +100,16 @@ Destination should differ from source (same-floor trips handled separately).
 | Message | Cause | Fix |
 |---------|-------|-----|
 | Invalid input | Non-numeric | Enter integers |
-| Value must be between X and Y | Out of range | See menu **6** limits |
+| Value must be between X and Y | Out of range | See menu **5** limits |
 | No idle elevator available | All cabs busy at dispatch instant | Normal under load; later events may assign |
-| Failed to load random_seed.txt | Missing file | Run menu **6** first |
+| Failed to load random_seed.txt | Missing file | Run menu **5** first |
 
 ---
 
 ## Tips for demonstrations
 
-- **Quick logic demo:** option **1**, 5 floors, 2 elevators, 1–2 requests  
-- **Impressive metrics:** option **6** → **7** (e.g. 20 elevators, 450 requests)  
+- **Quick logic demo:** option **1**, add requests with **2**, run with **3**  
+- **Impressive metrics:** option **5** → **6** (e.g. 20 elevators, 450 requests)  
 - See [HOW_TO_PRESENT.md](HOW_TO_PRESENT.md) and [DEMO_SCRIPT.md](DEMO_SCRIPT.md)
 
 ---

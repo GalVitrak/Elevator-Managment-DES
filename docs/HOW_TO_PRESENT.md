@@ -120,13 +120,13 @@ Point to **results file**: `Queue waits over SLA: 0`.
 1. Build: `make` or Visual Studio, run from repo root.
 2. Menu **1** — e.g. **5** floors above ground, **2** elevators, capacity **10**, max time **200**.
 3. Add **2–3** requests (0→3, 2→4).
-4. Menu **5** — show elevators, queues, empty FEL at end.
+4. Menu **4** — show elevators, queues, empty FEL at end.
 5. Open **`simulation_log.txt`** — point at timestamps and `DOORS_OPEN` with onboard list.
 
 ### Option B — Impressive (your real stress test)
 
-1. Menu **6** — e.g. 100 floors above ground, 20 elevators, capacity 16, 450 requests, horizon 7200 s → generates `random_seed.txt`.
-2. Menu **7** — run simulation.
+1. Menu **5** — e.g. 100 floors above ground, 20 elevators, capacity 16, 450 requests, horizon 7200 s → generates `random_seed.txt`.
+2. Menu **6** — run simulation.
 3. Open **`simulation_results.txt`** on projector:
    - Service rate **100%**
    - **Maximum queue wait** &lt; 180 s

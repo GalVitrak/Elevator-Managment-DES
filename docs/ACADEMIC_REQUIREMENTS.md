@@ -59,9 +59,10 @@ Operations: insert sorted, pop head, enqueue, dequeue.
 
 ## Requirement 5: File save / load
 
-- **Save:** `config_save` → `config.txt`  
-- **Load:** `config_load` ← `config.txt`  
-- Menu options 2 and 3  
+- **Seed save:** `seed_save_to_file` → `random_seed.txt`  
+- **Seed load:** `seed_load_from_file` ← `random_seed.txt`  
+- Runtime reports: `statistics_write_report` → `simulation_results.txt`  
+- Menu flow: option 5 (generate seed), option 6 (load seed + run)  
 
 **Presentation:** [CONFIGURATION.md](CONFIGURATION.md)
 

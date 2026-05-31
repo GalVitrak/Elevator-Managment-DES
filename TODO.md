@@ -48,9 +48,9 @@ grep -r "TODO" --include="*.c" --include="*.h"
 ## Testing before presentation
 
 1. Build Release; run from repo root.
-2. Menu **6** → generate `random_seed.txt` (your building size).
-3. Menu **7** → run; open `simulation_results.txt` (service %, max wait, SLA line).
-4. Menu **5** — optional: show grid + FEL.
+2. Menu **5** → generate `random_seed.txt` (your building size).
+3. Menu **6** → run; open `simulation_results.txt` (service %, max wait, SLA line).
+4. Menu **4** — optional: show grid + FEL.
 5. Follow [docs/HOW_TO_PRESENT.md](docs/HOW_TO_PRESENT.md) demo section.
 
 ---

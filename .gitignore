@@ -14,6 +14,9 @@ simulation_log.txt
 random_seed.txt
 simulation_results.txt
 
+# Documentation (keep local only)
+docs/
+
 # Visual Studio
 .vs/
 *.user

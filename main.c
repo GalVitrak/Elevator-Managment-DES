@@ -2,33 +2,30 @@
  * main.c - Program entry point and console menu
  *
  * PRESENTATION: No DES logic here — only I/O. Demo paths:
- *   1 = small manual sim   5 = print state (grid + FEL)
- *   6 = configure + write random_seed.txt   7 = load seed + simulation_run()
+ *   1 = initialize manual sim   4 = print state (grid + FEL)
+ *   5 = configure + write random_seed.txt   6 = load seed + simulation_run()
  *
  * DES engine lives in simulation.c.
  */
 #include "simulation.h"
 #include "constants.h"
 #include "logger.h"
-#include "file_manager.h"
 #include "random_seed.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* print_menu - Display numbered options and prompt for selection. */
 static void print_menu(void)
 {
     printf("\n--- Elevator Management System (DES) ---\n");
-    printf("1. Start new simulation\n");
-    printf("2. Load configuration\n");
-    printf("3. Save configuration\n");
-    printf("4. Add passenger request manually\n");
-    printf("5. Print system state\n");
-    printf("6. Generate random seed file\n");
-    printf("7. Load seed file and run simulation\n");
-    printf("8. Exit\n");
+    printf("1. Start new simulation (manual mode)\n");
+    printf("2. Add passenger request manually\n");
+    printf("3. Run current simulation\n");
+    printf("4. Print system state\n");
+    printf("5. Generate random seed file\n");
+    printf("6. Load seed file and run simulation\n");
+    printf("7. Exit\n");
     printf("Select option: ");
 }
 
@@ -99,26 +96,6 @@ static int read_display_floor(const Simulation* sim, const char* prompt, int* ou
     }
 
     *outDisplay = display;
-    return 1;
-}
-
-static int read_display_floor_from_config(const SimulationConfig* config,
-                                          const char* prompt, int* outIndex)
-{
-    int display;
-    int index;
-
-    if (config == NULL || outIndex == NULL) {
-        return 0;
-    }
-
-    read_int_in_range(prompt,
-                      config_display_floor_min(config),
-                      config_display_floor_max(config),
-                      &display);
-
-    index = config_display_to_index(config, display);
-    *outIndex = index;
     return 1;
 }
 
@@ -199,8 +176,8 @@ static void configure_interactively(SimulationConfig* config)
 }
 
 /*
- * add_passenger_interactive - Menu option 4: one request if sim already initialized.
- * Requires prior option 1 or 2; does not run simulation_run by itself.
+ * add_passenger_interactive - Menu option 2: one request if sim already initialized.
+ * Requires prior option 1; does not run simulation_run by itself.
  */
 static void add_passenger_interactive(Simulation* sim)
 {
@@ -210,7 +187,7 @@ static void add_passenger_interactive(Simulation* sim)
     int destIndex;
 
     if (sim == NULL || sim->numFloors == 0) {
-        printf("Initialize simulation configuration first (option 1 or 2).\n");
+        printf("Start a simulation first (option 1).\n");
         return;
     }
 
@@ -228,16 +205,11 @@ static void add_passenger_interactive(Simulation* sim)
 }
 
 /*
- * start_simulation_interactive - Menu option 1: configure, init, seed requests, run DES.
- * Prints state before and after simulation_run for demonstration.
+ * start_simulation_interactive - Menu option 1: configure and initialize a fresh
+ * manual simulation. Does not auto-run; user can add requests and run via option 3.
  */
 static void start_simulation_interactive(Simulation* sim, SimulationConfig* config)
 {
-    int requestCount;
-    int i;
-    int source;
-    int destination;
-
     configure_interactively(config);
 
     simulation_destroy(sim);
@@ -246,35 +218,12 @@ static void start_simulation_interactive(Simulation* sim, SimulationConfig* conf
         return;
     }
 
-    {
-        char prompt[96];
-        snprintf(prompt, sizeof(prompt),
-                 "How many passenger requests to seed? (0-%d): ",
-                 MAX_SEED_REQUESTS);
-        read_int_in_range(prompt, 0, MAX_SEED_REQUESTS, &requestCount);
-    }
-
-    for (i = 0; i < requestCount; i++) {
-        printf("Request %d:\n", i + 1);
-        if (!read_display_floor_from_config(&sim->config,
-                                            "  Source floor (ground=0): ", &source)) {
-            return;
-        }
-        if (!read_display_floor_from_config(&sim->config,
-                                            "  Destination floor: ", &destination)) {
-            return;
-        }
-        simulation_add_passenger_request(sim, source, destination);
-    }
-
-    simulation_print_state(sim);
-    simulation_run(sim);
-    simulation_print_state(sim);
+    printf("Simulation initialized. Add manual requests (option 2), then run (option 3).\n");
 }
 
 /*
- * generate_random_seed_interactive - Menu option 6: user picks building params and
- * request count; generates random trips, saves to random_seed.txt (and config.txt).
+ * generate_random_seed_interactive - Menu option 5: user picks building params and
+ * request count; generates random trips and saves to random_seed.txt.
  */
 static void generate_random_seed_interactive(Simulation* sim, SimulationConfig* config)
 {
@@ -315,11 +264,7 @@ static void generate_random_seed_interactive(Simulation* sim, SimulationConfig* 
         return;
     }
 
-    if (config_save(config, CONFIG_FILE_NAME)) {
-        printf("Configuration also saved to %s\n", CONFIG_FILE_NAME);
-    }
-
-    printf("Saved %d random requests to %s (clock seed %u — use option 7 to replay)\n",
+    printf("Saved %d random requests to %s (clock seed %u — use option 6 to replay)\n",
            scenario.numRequests, SEED_FILE_NAME, scenario.randomSeed);
 
     read_int_in_range("Run simulation now? (1=yes, 0=no): ", 0, 1, &runNow);
@@ -339,7 +284,7 @@ static void generate_random_seed_interactive(Simulation* sim, SimulationConfig* 
 }
 
 /*
- * load_seed_and_run_interactive - Menu option 7: load random_seed.txt and run DES.
+ * load_seed_and_run_interactive - Menu option 6: load random_seed.txt and run DES.
  */
 static void load_seed_and_run_interactive(Simulation* sim, SimulationConfig* config)
 {
@@ -371,13 +316,24 @@ static void load_seed_and_run_interactive(Simulation* sim, SimulationConfig* con
 }
 
 /*
+ * run_current_simulation - Menu option 3: run initialized simulation.
+ */
+static void run_current_simulation(Simulation* sim)
+{
+    if (sim == NULL || sim->numFloors == 0) {
+        printf("Simulation not initialized. Start a new simulation first (option 1).\n");
+        return;
+    }
+    simulation_print_state(sim);
+    simulation_run(sim);
+    simulation_print_state(sim);
+}
+
+/*
  * main - Menu only; DES engine is simulation_run() in simulation.c.
  *
  * DES is NOT real-time: simulation_run() jumps currentTime from event to event
  * (lowest T in Future Event List). No sleep() between events. See docs/DES_COURSE_HE.md.
- *
- * Option 2 loads config and inits sim without running.
- * Option 3 saves config from current sim or defaults.
  */
 int main(void)
 {
@@ -408,43 +364,29 @@ int main(void)
             start_simulation_interactive(&sim, &config);
             break;
         case 2:
-            if (config_load(&config, CONFIG_FILE_NAME)) {
-                printf("Configuration loaded from %s\n", CONFIG_FILE_NAME);
-                simulation_destroy(&sim);
-                if (!simulation_init(&sim, &config)) {
-                    printf("Failed to initialize simulation from config.\n");
-                }
-            }
-            break;
-        case 3:
-            if (sim.numFloors > 0) {
-                config = sim.config;
-            }
-            if (config_save(&config, CONFIG_FILE_NAME)) {
-                printf("Configuration saved to %s\n", CONFIG_FILE_NAME);
-            }
-            break;
-        case 4:
             add_passenger_interactive(&sim);
             break;
-        case 5:
+        case 3:
+            run_current_simulation(&sim);
+            break;
+        case 4:
             if (sim.numFloors == 0) {
-                printf("Simulation not initialized. Load config or start simulation.\n");
+                printf("Simulation not initialized. Start a new simulation first.\n");
             } else {
                 simulation_print_state(&sim);
             }
             break;
-        case 6:
+        case 5:
             generate_random_seed_interactive(&sim, &config);
             break;
-        case 7:
+        case 6:
             load_seed_and_run_interactive(&sim, &config);
             break;
-        case 8:
+        case 7:
             running = 0;
             break;
         default:
-            printf("Invalid option. Choose 1-8.\n");
+            printf("Invalid option. Choose 1-7.\n");
             break;
         }
     }

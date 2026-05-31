@@ -129,12 +129,12 @@ des_elevator.exe        # Windows
 1. Menu **1** — start simulation; enter e.g. 5 floors above ground, 2 elevators, capacity 10, max time 100.
 2. Add passenger requests (e.g. floor 0 → 3).
 3. Review console, `simulation_log.txt`, and `simulation_results.txt`.
-4. Menu **5** — print elevators, queues, building grid, and pending events.
+4. Menu **4** — print elevators, queues, building grid, and pending events.
 
 **Large random scenario (recommended)**
 
-1. Menu **6** — configure building (up to **150** floors above ground, **20** underground, **100** elevators, **2000** requests, etc.) and generate `random_seed.txt`.
-2. Menu **7** — load seed and run DES; check `simulation_results.txt` for max/average queue wait and SLA line.
+1. Menu **5** — configure building (up to **150** floors above ground, **20** underground, **100** elevators, **2000** requests, etc.) and generate `random_seed.txt`.
+2. Menu **6** — load seed and run DES; check `simulation_results.txt` for max/average queue wait and SLA line.
 
 ### Visual Studio
 
@@ -272,7 +272,7 @@ File: `config.txt` (or copy from `config.txt.example`). Interactive limits are i
 | `DEST_CLUSTER_MAX_SPAN_FLOORS` | Max destination spread in one cab cluster |
 | `SECONDS_PER_FLOOR` | Travel time per floor (default **1** s) |
 
-Menu **2** = load `config.txt`, **3** = save, **6** = configure + write `random_seed.txt`, **7** = load seed and run.
+Menu **1** = start manual simulation setup, **2** = add manual request, **3** = run current simulation, **5** = configure + write `random_seed.txt`, **6** = load seed and run.
 
 ---
 

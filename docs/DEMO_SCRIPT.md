@@ -1,7 +1,9 @@
 # Live Demo Script
 
 **Duration:** 5–7 minutes  
-**Prerequisites:** Built executable, terminal visible to audience
+**Prerequisites:** Built executable, terminal visible to audience  
+
+**Paths:** Option **1** (quick logic) or **6** → **7** (full metrics + `simulation_results.txt`). This script follows option 1; for seed runs see [HOW_TO_PRESENT.md](HOW_TO_PRESENT.md).
 
 ---
 
@@ -93,24 +95,24 @@ Scroll slowly — same messages as console.
 
 ---
 
-## Minute 4:30 — Config (optional, 30 sec)
+## Minute 4:30 — Results file (1 min)
 
-If time:
+Open **`simulation_results.txt`**:
 
-- Option `3` → saves `config.txt`
-- Show file contents in editor
+- Service rate, max queue wait, **Queue waits over SLA**
+- Per-passenger table (optional scroll)
 
-> “Experiments are repeatable — reload with option 2 next session.”
+> “We measure queue wait until boarding; SLA target is three minutes.”
 
 ---
 
 ## Minute 5:00 — Exit
 
-Option `6`.
+Option `8`.
 
 **Closing line:**
 
-> “Phase 1 proves the event engine. Phase 2 adds travel time and smarter dispatch — see TODO.md on GitHub.”
+> “DES engine, realistic timing, wait-priority dispatch, and reproducible seeds — optional extensions like energy are in TODO.md.”
 
 ---
 
@@ -128,15 +130,12 @@ Option `6`.
 Add second request before run:
 
 - Request 2: floor 4 → 1  
-- Mention: “only one idle elevator at a time in phase 1”
-
-Or option `4` mid-session after load config — manual passenger.
+Or menu **6** → **7** with your course parameters (20 elevators, 450 requests).
 
 ---
 
 ## Do NOT do during demo
 
-- Don’t paste huge code blocks  
+- Don’t paste huge code blocks (use [HOW_TO_PRESENT.md](HOW_TO_PRESENT.md) snippets)  
 - Don’t debug compile errors live  
-- Don’t claim realistic timing yet  
-- Don’t run with 50 passengers (noisy log)
+- Don’t run 2000 requests with verbose log unless you filter the file

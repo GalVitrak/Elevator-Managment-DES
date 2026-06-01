@@ -16,12 +16,12 @@ Every struct and enum in the project, field by field, for presentations and code
 
 ### 1.2 `ElevatorStatus` (`elevator.h`)
 
-| Value | Phase 1 usage |
-|-------|----------------|
+| Value | Usage |
+|-------|--------|
 | `ELEVATOR_IDLE` | Available at floor |
 | `ELEVATOR_MOVING` | Assigned / traveling |
-| `ELEVATOR_MAINTENANCE` | Reserved — phase 2 |
-| `ELEVATOR_OUT_OF_SERVICE` | Reserved — phase 2 |
+| `ELEVATOR_MAINTENANCE` | Reserved (optional emergency) |
+| `ELEVATOR_OUT_OF_SERVICE` | Reserved (optional emergency) |
 
 ### 1.3 `DoorState` (`elevator.h`)
 
@@ -69,15 +69,18 @@ Every struct and enum in the project, field by field, for presentations and code
 | `doorState` | `DoorState` | Open or closed |
 | `capacity` | `int` | Max passengers |
 | `passengerCount` | `int` | Current load |
+| `numFloors` | `int` | Building height for stop mask |
+| `floorStops` | `unsigned char*` | Per-floor stop flags |
+| `onboardHead` | `Passenger*` | Head of onboard linked list |
 
-**Invariants (phase 2):** `0 <= passengerCount <= capacity`
+**Invariants:** `0 <= passengerCount <= capacity`
 
 ---
 
 ## 3. Struct `Passenger`
 
 **File:** `passenger.h`  
-**Storage:** floor queue nodes OR `activePassengersByElevator`
+**Storage:** floor queue (`next`) or cab list (`onboardNext`)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -85,8 +88,11 @@ Every struct and enum in the project, field by field, for presentations and code
 | `sourceFloor` | `int` | Where request started |
 | `destinationFloor` | `int` | Target floor |
 | `requestTime` | `double` | Time of request |
+| `boardTime` | `double` | Boarding time (−1 if not boarded) |
 | `status` | `PassengerStatus` | Lifecycle state |
+| `assignedElevatorId` | `int` | Cab assigned for pickup, or −1 |
 | `next` | `Passenger*` | Next in floor queue |
+| `onboardNext` | `Passenger*` | Next passenger on same cab |
 
 **Allocation:** `passenger_create()` → `malloc`  
 **Free:** `passenger_destroy()` or `floor_destroy`
@@ -134,7 +140,7 @@ Every struct and enum in the project, field by field, for presentations and code
 | DOORS_CLOSE | Often **destination** when moving |
 | PASSENGER_EXIT | Floor where passenger leaves |
 
-Phase 2 may add explicit `destinationFloor` if needed.
+For `DOORS_CLOSE`, `floor` often carries the next destination stop index.
 
 ---
 
@@ -155,7 +161,8 @@ Phase 2 may add explicit `destinationFloor` if needed.
 |-------|------|-------------|
 | `currentTime` | `double` | Simulation clock |
 | `maxSimulationTime` | `double` | Stop horizon |
-| `numFloors` | `int` | Building height count |
+| `numFloors` | `int` | Internal floor count (incl. basement indices) |
+| `groundFloorIndex` | `int` | Internal index for display floor 0 |
 | `numElevators` | `int` | Cab count |
 | `elevatorCapacity` | `int` | Per-cab capacity |
 | `elevators` | `Elevator*` | Dynamic array |
@@ -163,7 +170,11 @@ Phase 2 may add explicit `destinationFloor` if needed.
 | `eventList` | `EventList` | FEL |
 | `nextPassengerId` | `int` | ID generator |
 | `config` | `SimulationConfig` | Saved settings |
-| `activePassengersByElevator` | `Passenger**` | In-cab tracking |
+| `stats` | `SimulationStats` | Wait/travel aggregates |
+| `nextDispatchFloor` | `int` | Round-robin hint for queue scan |
+| `buildingView` | `BuildingGrid` | ASCII grid for menu 5 |
+| `numZones` | `int` | Zone count for dispatch bias |
+| `floorDemand` | `int*` | Per-floor call counts (idle reposition) |
 
 ---
 
@@ -184,19 +195,20 @@ Phase 2 may add explicit `destinationFloor` if needed.
 
 ```text
 Simulation
-├── elevators[]     ──► [Elevator][Elevator]...
-├── floors[]        ──► [Floor]──► Passenger ↔ Passenger ↔ ...
-├── eventList.head  ──► Event ↔ Event ↔ Event (sorted by time)
-└── activePassengersByElevator[] ──► Passenger* (or NULL)
+├── elevators[]     ──► Elevator ──► onboardHead ──► Passenger ↔ ...
+├── floors[]        ──► Floor ──► waitingQueueFront ↔ Passenger ↔ ...
+├── eventList.head  ──► Event ↔ Event (sorted by time)
+├── floorDemand[]   ──► per-floor integers
+└── buildingView    ──► grid matrix for display
 ```
 
 ---
 
 ## 10. Presentation talking points
 
-1. **Three linked lists:** FEL, each floor queue, passenger `next` chains.  
-2. **Two dynamic arrays:** elevators, floors.  
-3. **One pointer array:** active passengers per elevator.  
-4. All satisfy typical “data structures course” checklist.
+1. **Linked lists:** FEL, floor queues, onboard lists per cab.  
+2. **Dynamic arrays:** elevators, floors, `floorDemand`, stop masks.  
+3. **Statistics struct:** aggregated waits and utilization.  
+4. Satisfies typical “data structures course” checklist.
 
 See also [ALGORITHMS.md](ALGORITHMS.md) for operations on these structures.

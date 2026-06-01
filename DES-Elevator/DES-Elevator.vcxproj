@@ -154,6 +154,8 @@
     <ClCompile Include="..\file_manager.c" />
     <ClCompile Include="..\random_seed.c" />
     <ClCompile Include="..\statistics.c" />
+    <ClCompile Include="..\text_table.c" />
+    <ClCompile Include="..\building_grid.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\constants.h" />
@@ -166,6 +168,8 @@
     <ClInclude Include="..\file_manager.h" />
     <ClInclude Include="..\random_seed.h" />
     <ClInclude Include="..\statistics.h" />
+    <ClInclude Include="..\text_table.h" />
+    <ClInclude Include="..\building_grid.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

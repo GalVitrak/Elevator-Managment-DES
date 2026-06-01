@@ -1,9 +1,23 @@
 #ifndef STATISTICS_H
 #define STATISTICS_H
 
+/*
+ * statistics.h - Metrics collected during DES; written to simulation_results.txt.
+ */
+
 #include "passenger.h"
 
 struct Simulation; /* defined in simulation.h */
+
+/* One completed passenger trip (recorded when they exit the elevator). */
+typedef struct {
+    int passengerId;
+    int sourceFloor;
+    int destinationFloor;
+    double queueSeconds;
+    double travelSeconds;
+    double totalSeconds;
+} PassengerTripRecord;
 
 /*
  * Accumulated metrics during DES (time-weighted queue and elevator busy times).
@@ -15,11 +29,16 @@ typedef struct {
     int maxQueueLength;
     int totalRequests;
     int totalServed;
+    int passengersBoarded;
     int passengersWhoWaited;
+    int slaQueueViolations;
     double sumWaitTime;
     double maxWaitTime;
     double sumTotalTripTime;
     double* elevatorBusyTime;
+    PassengerTripRecord* tripRecords;
+    int tripRecordCount;
+    int tripRecordCapacity;
 } SimulationStats;
 
 void statistics_init(SimulationStats* stats, int numElevators);

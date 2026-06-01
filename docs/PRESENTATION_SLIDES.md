@@ -14,7 +14,7 @@ Discrete Event Simulation in C
 - Team: [Your names]
 - GitHub: GalVitrak/Elevator-Managment-DES
 
-*Speaker note: State that this is a two-phase project; today you present phase 1 (~50%).*
+*Speaker note: Full DES with dispatch, SLA, and statistics — see HOW_TO_PRESENT.md for code snippets.*
 
 ---
 
@@ -36,7 +36,7 @@ Discrete Event Simulation in C
 
 - Simulation = cheap, safe, repeatable
 - Compare dispatch policies before installing hardware
-- Measure wait times, utilization, energy (phase 2)
+- Measure wait times, utilization (energy: optional future work)
 
 ---
 
@@ -130,11 +130,11 @@ flowchart TB
 - `doorState`: OPEN / CLOSED
 - `capacity`, `passengerCount`
 
-*Speaker note: MAINTENANCE / OUT_OF_SERVICE reserved for phase 2.*
+*Speaker note: MAINTENANCE / OUT_OF_SERVICE enums exist; emergency handling is optional (TODO).*
 
 ---
 
-## Slide 11 — Passenger lifecycle (phase 1)
+## Slide 11 — Passenger lifecycle
 
 ```text
 WAITING  →  IN_ELEVATOR  →  ARRIVED
@@ -195,26 +195,25 @@ File: `simulation.c` → `simulation_run()`
 
 ---
 
-## Slide 15 — Dispatch policy (phase 1)
+## Slide 15 — Dispatch policy (current)
 
-**First idle elevator wins**
+**Wait-priority + ETA**
 
-- Scan elevators 0 .. n−1
-- First with `IDLE` + doors `CLOSED`
-- If none free → passenger stays in queue (logged)
-
-*Phase 2: nearest cab, SCAN algorithm.*
+- Batch greedy (passenger, cab) matching
+- Idle cabs: lowest estimated time to pickup
+- Moving cabs: on-the-way if same direction (`elevator_will_serve_call`)
+- Destination clustering (3 / 5 / 10 floor span by wait)
+- **180 s** queue-wait SLA in `simulation_results.txt`
 
 ---
 
-## Slide 16 — Movement model (honest)
+## Slide 16 — Movement model
 
-**Phase 1: instant travel (placeholder)**
+**Scheduled travel**
 
-- `elevator_assign_to_floor()` sets `currentFloor = target` immediately
-- Allows testing **event logic** before physics
-
-**Phase 2:** schedule arrival after `distance × seconds_per_floor`
+- `simulation_schedule_elevator_travel`
+- Arrival at `currentTime + distance × SECONDS_PER_FLOOR + door delay`
+- Clock jumps to each event — not real-time playback
 
 ---
 
@@ -250,7 +249,9 @@ Menu: load / save — reproducible experiments.
 3. Save config  
 4. Add passenger  
 5. Print state  
-6. Exit  
+6. Generate `random_seed.txt`  
+7. Load seed and run  
+8. Exit  
 
 Simple by design — no GUI in scope.
 
@@ -258,50 +259,44 @@ Simple by design — no GUI in scope.
 
 ## Slide 20 — Live demo plan
 
-1. Start program  
-2. Option 1: 5 floors, 2 elevators  
-3. One request: 0 → 3  
-4. Show log + final state (option 5)  
+**Quick:** Option 1 — 5 floors, 2 elevators, one request 0 → 3, option 5  
 
-*Script: [DEMO_SCRIPT.md](DEMO_SCRIPT.md)*
+**Full metrics:** Option 6 → 7 → open `simulation_results.txt`  
 
----
-
-## Slide 21 — Sample log excerpt
-
-```text
-[t=0.00][INFO] Simulation started
-[t=0.00][INFO] Assigning elevator 0 to floor 0
-[t=0.00][INFO] Passenger boarded elevator
-[t=0.50][INFO] Doors closed
-[t=0.00][INFO] Simulation finished at t=...
-```
-
-*Real output: [SAMPLE_RUNS.md](SAMPLE_RUNS.md)*
+*Script: [DEMO_SCRIPT.md](DEMO_SCRIPT.md) · [HOW_TO_PRESENT.md](HOW_TO_PRESENT.md)*
 
 ---
 
-## Slide 22 — Phase 1 deliverables ✓
+## Slide 21 — Sample output
+
+`simulation_results.txt`:
+
+- Service rate %  
+- Maximum queue wait  
+- Queue waits over SLA (target 180 s)  
+
+*Examples: [SAMPLE_RUNS.md](SAMPLE_RUNS.md)*
+
+---
+
+## Slide 22 — Deliverables ✓
 
 - Modular C architecture  
 - FEL + queues + DES loop  
-- Event handlers (skeleton)  
-- Logging + config  
-- Documentation (20+ markdown files)  
-- GitHub + branch workflow  
+- Travel, doors, multi-passenger cabs  
+- Dispatch + SLA statistics file  
+- Random seed reproducibility  
+- Documentation + presentation guide  
 
 ---
 
-## Slide 23 — Phase 2 roadmap
+## Slide 23 — Optional extensions
 
-| Priority | Feature |
-|----------|---------|
-| P0 | Realistic movement |
-| P0 | Smart dispatch |
-| P0 | Capacity / overload |
-| P0 | Statistics |
-| P1 | Energy model |
-| P2 | Emergency events |
+| Feature | Status |
+|---------|--------|
+| Energy model | TODO |
+| Emergency / maintenance events | TODO |
+| GUI dashboard | Out of scope |
 
 See `TODO.md`.
 
@@ -309,13 +304,12 @@ See `TODO.md`.
 
 ## Slide 24 — Known limitations
 
-- Instant movement  
-- One tracked passenger per elevator  
-- No statistics dashboard  
-- No GUI  
-- First-idle dispatch only  
+- No GUI — console + text files only  
+- On-the-way pickup disabled for fleets ≥ 30 elevators  
+- No energy metric in results yet  
+- Heavy overload → low service rate (capacity, not a bug)  
 
-**These are documented, not hidden.**
+**Documented in FAQ and TODO.**
 
 ---
 

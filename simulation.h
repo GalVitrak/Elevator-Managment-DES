@@ -1,6 +1,7 @@
 #ifndef SIMULATION_H
 #define SIMULATION_H
 
+#include "building_grid.h"
 #include "elevator.h"
 #include "floor.h"
 #include "event.h"
@@ -8,13 +9,14 @@
 #include "statistics.h"
 
 /*
- * Central simulation state: clock, building, Future Event List, and tracking.
- * activePassengersByElevator[i]: passenger currently on elevator i (phase 1: at most one).
+ * PRESENTATION: Root struct — ties together FEL, floors, elevators, stats, grid.
+ * Passengers on each cab: Elevator.onboardHead (ride-sharing linked list).
  */
 typedef struct Simulation {
     double currentTime;
     double maxSimulationTime;
-    int numFloors;
+    int numFloors;          /* internal indices: 0 .. numFloors-1 */
+    int groundFloorIndex;   /* internal index for display floor 0 */
     int numElevators;
     int elevatorCapacity;
     Elevator* elevators;
@@ -22,8 +24,11 @@ typedef struct Simulation {
     EventList eventList;
     int nextPassengerId;
     SimulationConfig config;
-    Passenger** activePassengersByElevator;
     SimulationStats stats;
+    int nextDispatchFloor;
+    BuildingGrid buildingView;  /* dynamic elevators x floors matrix (display) */
+    int numZones;               /* floor bands for zone-biased dispatch (1 = off) */
+    int* floorDemand;           /* call count per floor index (idle reposition) */
 } Simulation;
 
 /*
@@ -51,8 +56,15 @@ int simulation_run(Simulation* sim);
 void simulation_add_passenger_request(Simulation* sim, int sourceFloor,
                                       int destinationFloor);
 
-/* Print elevators, all floor queues, and the FEL (menu option 5). */
-void simulation_print_state(const Simulation* sim);
+/*
+ * Schedule a passenger to arrive at arrivalTime (DES event only — not all at t=0).
+ * Passenger is created when the call event fires.
+ */
+void simulation_schedule_passenger_arrival(Simulation* sim, double arrivalTime,
+                                           int sourceFloor, int destinationFloor);
+
+/* Print elevators, floor queues, FEL; optional building grid (menu option 4). */
+void simulation_print_state(const Simulation* sim, int showGrid);
 
 /* Return 1 if floor is in [0, numFloors); 0 otherwise. */
 int simulation_validate_floor(const Simulation* sim, int floor);

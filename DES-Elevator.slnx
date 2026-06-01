@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="DES-Elevator/DES-Elevator.vcxproj" />
+  <Project Path="DES-Elevator/DES-Elevator.vcxproj" Id="43da3065-1fe6-40d6-91d3-484edc34a25b" />
 </Solution>

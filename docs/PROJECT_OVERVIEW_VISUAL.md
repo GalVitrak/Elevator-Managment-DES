@@ -88,7 +88,7 @@ erDiagram
     SIMULATION ||--|| EVENT_LIST : owns
     FLOOR ||--o{ PASSENGER : queues
     EVENT_LIST ||--o{ EVENT : schedules
-    ELEVATOR ||--o| PASSENGER : carries_phase1
+    ELEVATOR ||--o{ PASSENGER : onboard_list
 
     SIMULATION {
         double currentTime
@@ -165,15 +165,15 @@ stateDiagram-v2
 
 ---
 
-## 9. Elevator status (phase 1 usage)
+## 9. Elevator status
 
 ```mermaid
 stateDiagram-v2
     [*] --> IDLE
-    IDLE --> MOVING: assign / travel
-    MOVING --> IDLE: doors open complete
-    IDLE --> MAINTENANCE: phase 2 only
-    IDLE --> OUT_OF_SERVICE: phase 2 only
+    IDLE --> MOVING: travel scheduled
+    MOVING --> IDLE: stop complete / empty
+    IDLE --> MAINTENANCE: optional future
+    IDLE --> OUT_OF_SERVICE: optional future
 ```
 
 ---
@@ -197,8 +197,8 @@ sequenceDiagram
 
     Note over Sim: simulation_run starts
     Sim->>FEL: pop CALL
-    Sim->>El: find idle, assign
-    Sim->>FEL: schedule ARRIVAL @0
+    Sim->>El: dispatch (ETA / batch)
+    Sim->>FEL: schedule ARRIVAL @t+travel
     Sim->>FEL: pop ARRIVAL
     Sim->>FEL: schedule DOORS_OPEN
     Sim->>Fl: dequeue, board
@@ -208,21 +208,19 @@ sequenceDiagram
 
 ---
 
-## 11. Phase 1 vs Phase 2 (roadmap visual)
+## 11. Project timeline (current)
 
 ```mermaid
 timeline
-    title Project timeline
-    section Phase 1 Done
-        Architecture : modules
-        FEL : sorted list
-        Handlers : skeleton
-        Docs : presentation pack
-    section Phase 2 Planned
-        Movement : travel delay
-        Dispatch : SCAN / nearest
-        Stats : reports
-        Emergency : maintenance mode
+    title Delivered vs optional
+    section Shipped
+        DES core : FEL + handlers
+        Realism : travel + doors
+        Dispatch : ETA batch clustering SLA
+        Outputs : log + results + seed
+    section Optional
+        Energy : kWh model
+        Emergency : maintenance events
 ```
 
 ---

@@ -6,11 +6,20 @@
  * All fields are validated by config_validate() before use.
  */
 typedef struct {
-    int numFloors;
+    int numFloors;              /* total at/above ground incl. 0 (e.g. 101 => floors 0..100) */
+    int numUndergroundFloors;   /* basement levels: display -1 .. -numUnderground */
     int numElevators;
     int capacity;
     double maxSimulationTime;
 } SimulationConfig;
+
+/* Internal shaft indices: 0 .. config_total_internal_floors()-1 */
+int config_total_internal_floors(const SimulationConfig* config);
+int config_display_floor_min(const SimulationConfig* config);
+int config_display_floor_max(const SimulationConfig* config);
+int config_display_to_index(const SimulationConfig* config, int displayFloor);
+int config_index_to_display(const SimulationConfig* config, int index);
+int config_validate_display_floor(const SimulationConfig* config, int displayFloor);
 
 /* Fill config with DEFAULT_* values from constants.h. */
 void config_set_defaults(SimulationConfig* config);

@@ -52,15 +52,17 @@ Operations: insert sorted, pop head, enqueue, dequeue.
 |-------|------------|----------|
 | `Simulation.elevators` | `calloc(numElevators, sizeof(Elevator))` | `simulation_destroy` |
 | `Simulation.floors` | `calloc(numFloors, sizeof(Floor))` | `simulation_destroy` |
-| `activePassengersByElevator` | `calloc(numElevators, sizeof(Passenger*))` | `simulation_destroy` |
+| `Elevator.floorStops` | per-cab `calloc(numFloors, …)` | `elevator_stops_destroy` / `simulation_destroy` |
+| `Simulation.floorDemand` | `calloc(numFloors, sizeof(int))` | `simulation_destroy` |
 
 ---
 
 ## Requirement 5: File save / load
 
-- **Save:** `config_save` → `config.txt`  
-- **Load:** `config_load` ← `config.txt`  
-- Menu options 2 and 3  
+- **Seed save:** `seed_save_to_file` → `random_seed.txt`  
+- **Seed load:** `seed_load_from_file` ← `random_seed.txt`  
+- Runtime reports: `statistics_write_report` → `simulation_results.txt`  
+- Menu flow: option 5 (generate seed), option 6 (load seed + run)  
 
 **Presentation:** [CONFIGURATION.md](CONFIGURATION.md)
 
@@ -96,8 +98,8 @@ Used for limits, defaults, and file paths across modules.
 ## Requirement 8: Readable functions
 
 - Short handlers per event type  
-- Named helpers: `simulation_schedule_event`, `elevator_find_first_idle`  
-- Comments at TODO sites for phase 2  
+- Named helpers: `simulation_schedule_event`, `simulation_find_elevator_for_pickup`  
+- `=== PRESENTATION ===` blocks in source for demo walkthrough  
 
 ---
 

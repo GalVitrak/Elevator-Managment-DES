@@ -64,7 +64,7 @@ Search `No idle elevator` — passenger stuck in queue.
 fc simulation_log_A.txt simulation_log_B.txt
 ```
 
-Deterministic phase 1 should match for same inputs.
+Same `random_seed.txt` and build should produce reproducible results.
 
 ---
 
@@ -95,7 +95,7 @@ Suggested breakpoints in Visual Studio / gdb:
 
 | Symptom | Likely cause |
 |---------|--------------|
-| Simulation ends instantly at t=0 | All events same time (phase 1 normal) |
+| Simulation ends very early | Check `max_simulation_time` and seed; few events if overload aborts early |
 | Passenger not found warning | CALL without enqueue |
 | Invalid elevator error | Bad `elevatorId` on event |
 | Empty log file | `logger_init` failed — check permissions |
@@ -103,7 +103,7 @@ Suggested breakpoints in Visual Studio / gdb:
 
 ---
 
-## Memory debugging (recommended phase 2)
+## Memory debugging (optional)
 
 **Linux:**
 

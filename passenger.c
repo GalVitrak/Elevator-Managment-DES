@@ -1,5 +1,6 @@
 /*
- * passenger.c - Passenger entity (linked-list node for floor queues)
+ * passenger.c - Passenger entity (linked-list node for floor queues and onboard list)
+ * PRESENTATION: assignedElevatorId links a waiter to a cab before boarding.
  */
 #include "passenger.h"
 
@@ -24,7 +25,9 @@ Passenger* passenger_create(int id, int source, int destination, double requestT
     passenger->requestTime = requestTime;
     passenger->boardTime = -1.0;
     passenger->status = PASSENGER_WAITING;
+    passenger->assignedElevatorId = -1;
     passenger->next = NULL;
+    passenger->onboardNext = NULL;
     return passenger;
 }
 

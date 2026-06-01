@@ -1,6 +1,7 @@
 # Algorithms Reference
 
-Algorithms used in the foundation phase — suitable for presentation slides and complexity discussion.
+Algorithms used in the elevator DES — suitable for presentation slides and complexity discussion.  
+**Dispatch and movement sections reflect the current implementation** (not the early “first idle / instant” prototype).
 
 ---
 
@@ -102,39 +103,52 @@ Used for display only, not hot path.
 
 ---
 
-## 6. Dispatch — first idle elevator
+## 6. Dispatch — ETA scoring + batch matching
 
-**Function:** `elevator_find_first_idle` (`elevator.c`)
+**Functions:** `simulation_find_elevator_for_pickup`, `simulation_batch_dispatch_round` (`simulation.c`)
+
+### Idle cab selection
 
 ```text
-find_idle(elevators, n):
-  for i = 0 to n-1:
-    if elevators[i].status == IDLE and doors == CLOSED:
-      return i
-  return -1
+for each idle cab with free slots:
+  eta = travel_to(call) + pending_stops * door_cycle + zone_penalty
+  score = eta + load * W_load - wait_seconds * W_wait_bonus
+pick minimum score
 ```
 
-**O(n)** — n = number of elevators (≤ 10).
+### Moving cab (fleet size < 30)
 
-### Policy name
+**Function:** `elevator_will_serve_call` (`elevator.c`) — same direction, not past call floor.  
+Assign only if `eta + current_wait <= MOVING_PICKUP_MAX_SUM_WAIT` (120 s).
 
-**FCFS on elevators** (first cab in index order), not FCFS on passengers globally.
+### Batch round
+
+```text
+for all unassigned passengers and all cabs with slots:
+  compute score
+pick global minimum (passenger, cab); assign; repeat
+```
+
+**Complexity:** O(passengers × elevators) per round; rounds bounded in `simulation_service_waiting_queues`.
+
+### Clustering
+
+**Function:** `simulation_dispatch_direction_group` — FCFS by `requestTime`, group destinations within dynamic span (3 / 5 / 10 floors).
 
 ---
 
-## 7. Movement — instant assign (phase 1)
+## 7. Movement — scheduled travel
 
-**Function:** `elevator_assign_to_floor`
+**Function:** `simulation_schedule_elevator_travel` (`simulation.c`)
 
 ```text
-assign(elevator, floor):
-  targetFloor = floor
-  update direction from current vs target
-  currentFloor = floor    // instant — phase 1 only
-  status = MOVING
+travelTime = |target - current| * SECONDS_PER_FLOOR
+arrivalTime = currentTime + DOOR_CLOSE_TIME + travelTime
+schedule EVENT_ELEVATOR_ARRIVAL at arrivalTime
+elevator status = MOVING (position updates only on arrival)
 ```
 
-Phase 2 replaces last line with schedule arrival event only.
+**O(1)** per trip segment; FEL insert O(n).
 
 ---
 
@@ -185,22 +199,25 @@ Constant-time bound checks against `MIN_*` / `MAX_*` macros.
 
 ## 12. Comparison table for slides
 
-| Structure | Algorithm | Phase 1 complexity |
+| Structure | Algorithm | Typical complexity |
 |-----------|-----------|-------------------|
-| FEL | Sorted linked list insert | O(n) |
+| FEL | Sorted linked list insert | O(n) per insert |
 | Floor queue | FIFO tail insert | O(1) |
-| Dispatch | Linear scan idle | O(n) |
-| Movement | Direct assign | O(1) |
+| Dispatch | Batch greedy + ETA scan | O(P×E) per round |
+| Movement | Schedule arrival event | O(1) + FEL insert |
+| Trip report | `qsort` on records | O(R log R) |
 
 ---
 
-## 13. Phase 2 algorithm ideas
+## 13. Optional future algorithms
 
-| Feature | Suggested algorithm |
-|---------|---------------------|
-| Nearest elevator | Min distance scan O(n) |
-| SCAN dispatch | Sort floor requests on direction |
-| Statistics | Welford’s online mean or batch at end |
-| FEL | Binary heap |
+| Feature | Suggested approach |
+|---------|-------------------|
+| FEL at huge scale | Binary heap O(log n) insert |
+| Energy | Integrate on `DOORS_CLOSE` / travel events |
+| Emergency | Remove cab from dispatch pool; re-queue passengers |
+| Mid-flight SLA | Cancel/reschedule `ELEVATOR_ARRIVAL` |
+
+**Already implemented:** ETA dispatch, SCAN-style stops, batch matching, end-of-run statistics (`qsort` trips).
 
 Document chosen algorithm in README when implemented.

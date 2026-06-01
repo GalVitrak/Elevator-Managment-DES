@@ -2,6 +2,11 @@
 #define PASSENGER_H
 
 /*
+ * passenger.h - Passenger node for queue and onboard lists.
+ * PRESENTATION: Lifecycle WAITING -> IN_ELEVATOR -> ARRIVED; assignedElevatorId for dispatch.
+ */
+
+/*
  * Passenger status in the DES lifecycle.
  * WAITING: in a floor queue; IN_ELEVATOR: on a cab; ARRIVED: trip complete.
  */
@@ -22,7 +27,9 @@ typedef struct Passenger {
     double requestTime;
     double boardTime;       /* simulation time when boarded; < 0 if not yet boarded */
     PassengerStatus status;
+    int assignedElevatorId; /* idle cab sent to pick up this waiter; -1 if none */
     struct Passenger* next;
+    struct Passenger* onboardNext; /* linked list while inside cab (ride-sharing) */
 } Passenger;
 
 /* Allocate a new passenger; returns NULL on malloc failure. */

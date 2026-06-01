@@ -1,6 +1,7 @@
 # Event Catalog
 
-Complete specification of every event type: purpose, scheduling, handler behavior, and follow-up events.
+Specification of every event type: purpose, scheduling, handler behavior, and follow-up events.  
+**Reflects current implementation** (travel delays, multi-passenger cabs, batch dispatch).
 
 ---
 
@@ -21,10 +22,12 @@ Logs: `Event created: <TYPE> (elev=… pass=… floor=…)`
 | Type | Scheduled by | Handler | Typical time |
 |------|--------------|---------|--------------|
 | PASSENGER_CALL | `simulation_add_passenger_request` | `handle_passenger_call` | `currentTime` |
-| ELEVATOR_ARRIVAL | call handler, doors_close | `handle_elevator_arrival` | `currentTime` (phase 1) |
-| DOORS_OPEN | arrival, (future) | `handle_doors_open` | `currentTime` |
-| DOORS_CLOSE | doors_open, exit | `handle_doors_close` | `currentTime + 0.5` |
-| PASSENGER_EXIT | doors_open at dest | `handle_passenger_exit` | `currentTime + 0.2` |
+| ELEVATOR_ARRIVAL | travel schedule, doors_close | `handle_elevator_arrival` | `currentTime + travel` |
+| DOORS_OPEN | arrival | `handle_doors_open` | `currentTime` |
+| DOORS_CLOSE | doors_open, exit | `handle_doors_close` | `currentTime + DOOR_*_DELAY` |
+| PASSENGER_EXIT | doors_open at dest | `handle_passenger_exit` | `currentTime + exit delay` |
+
+Between events, `simulation_batch_dispatch_round` and queue service may assign additional passengers.
 
 ---
 
@@ -32,36 +35,18 @@ Logs: `Event created: <TYPE> (elev=… pass=… floor=…)`
 
 ### Meaning
 
-A passenger on `floor` is waiting for service; system should try to assign an elevator.
+Hall call on `floor`; system tries to assign a cab (idle ETA, moving on-the-way, or batch round).
 
-### Payload
+### Handler actions (summary)
 
-| Field | Value |
-|-------|-------|
-| `elevatorId` | −1 |
-| `passengerId` | ID of waiting passenger |
-| `floor` | Source / call floor |
+1. Verify passenger in floor queue  
+2. `simulation_find_elevator_for_pickup` / batch dispatch  
+3. If assigned: schedule travel → `ELEVATOR_ARRIVAL` at computed time  
+4. If not: log warning; passenger remains queued for a later round  
 
-### Preconditions
+### Follow-up
 
-- Passenger already in `floors[floor]` queue (created in `simulation_add_passenger_request`)
-
-### Handler actions
-
-1. Verify passenger in queue  
-2. Set hall button flags  
-3. `elevator_find_first_idle`  
-4. If found: `elevator_assign_to_floor`, schedule `ELEVATOR_ARRIVAL`  
-5. If not: log warning, leave in queue  
-
-### Follow-up events
-
-- `ELEVATOR_ARRIVAL` (same time in phase 1)
-
-### Phase 2 changes
-
-- Retry scheduling when elevator becomes idle  
-- Smarter cab selection  
+- `ELEVATOR_ARRIVAL` at pickup floor (after travel delay)
 
 ---
 
@@ -69,114 +54,68 @@ A passenger on `floor` is waiting for service; system should try to assign an el
 
 ### Meaning
 
-Elevator `elevatorId` has reached `floor`.
-
-### Payload
-
-| Field | Value |
-|-------|-------|
-| `elevatorId` | Cab index |
-| `passengerId` | Related passenger |
-| `floor` | Arrival floor |
+Cab `elevatorId` reached `floor`.
 
 ### Handler actions
 
-1. Update `currentFloor`, `targetFloor`  
-2. Set status MOVING (phase 1)  
-3. Log arrival  
-4. Schedule `DOORS_OPEN` at same time  
+1. Update `currentFloor`, clear/advance target as appropriate  
+2. Log arrival  
+3. Schedule `DOORS_OPEN` at same simulation time  
 
 ### Follow-up
 
 - `DOORS_OPEN`
 
-### Phase 2 changes
-
-- Arrival at `currentTime + travelTime`  
-- Do not process if cab in MAINTENANCE  
-
 ---
 
 ## 3. DOORS_OPEN
 
-### Meaning
+### Branches
 
-Doors open at `floor` for elevator `elevatorId`.
+**A — Destination (passenger alighting)**
 
-### Handler branches
+- Schedule `PASSENGER_EXIT` after short delay  
 
-**A — Destination arrival (passenger on board, dest == floor)**
+**B — Pickup**
 
-- Schedule `PASSENGER_EXIT` at `t + 0.2`  
-- Return  
+- Dequeue passenger(s) within capacity; onboard linked list  
+- Schedule `DOORS_CLOSE` after door-open duration  
 
-**B — Pickup (passenger waiting on floor)**
+**C — Empty stop**
 
-- Dequeue front passenger  
-- Set IN_ELEVATOR, increment count, store in `activePassengersByElevator`  
-- Schedule `DOORS_CLOSE` at `t + 0.5` with `floor = destination`  
-
-**C — Empty**
-
-- Schedule `DOORS_CLOSE` with no passenger  
+- Schedule `DOORS_CLOSE`  
 
 ### Follow-up
 
 - `PASSENGER_EXIT` or `DOORS_CLOSE`
 
-### Phase 2 changes
-
-- Overload check before boarding  
-- Boarding time proportional to group size  
-
 ---
 
 ## 4. DOORS_CLOSE
 
-### Meaning
-
-Doors closed; cab may depart.
-
 ### Handler actions
 
 1. `doorState = CLOSED`  
-2. If passenger on board and `event.floor` is valid destination:  
-   - `elevator_assign_to_floor` toward destination  
-   - Schedule `ELEVATOR_ARRIVAL` at destination  
-3. Else: set elevator IDLE  
+2. If passengers onboard: pick next stop (`simulation_pick_next_stop_floor`), schedule travel  
+3. Else: may go IDLE or reposition (idle dispatch)  
 
 ### Follow-up
 
-- `ELEVATOR_ARRIVAL` at destination, or none  
-
-### Phase 2 changes
-
-- Energy accounting on move  
-- Delay before departure  
+- `ELEVATOR_ARRIVAL` at next stop, or idle reposition events  
 
 ---
 
 ## 5. PASSENGER_EXIT
 
-### Meaning
-
-Passenger leaves cab at `floor`.
-
 ### Handler actions
 
-1. Decrement `passengerCount`  
-2. Set status ARRIVED, `passenger_destroy`, clear active pointer  
-3. Set elevator IDLE  
-4. Schedule `DOORS_CLOSE` at `t + 0.5`  
+1. Remove passenger from onboard list; update statistics (wait/travel times)  
+2. Set status ARRIVED; `passenger_destroy`  
+3. Schedule `DOORS_CLOSE` for cleanup or next stop  
 
 ### Follow-up
 
-- `DOORS_CLOSE` (cleanup)
-
-### Phase 2 changes
-
-- Update statistics (wait time, travel time)  
-- Clear hall buttons  
+- `DOORS_CLOSE`; further dispatch may run at end of handler / batch round  
 
 ---
 
@@ -186,10 +125,10 @@ Passenger leaves cab at `floor`.
 stateDiagram-v2
     direction LR
     [*] --> CALL: add_passenger_request
-    CALL --> ARR1: assign elevator
+    CALL --> ARR1: assign + travel
     ARR1 --> OPEN1: arrival at source
     OPEN1 --> CLOSE1: board
-    CLOSE1 --> ARR2: go to destination
+    CLOSE1 --> ARR2: travel to destination
     ARR2 --> OPEN2: arrival at dest
     OPEN2 --> EXIT: alight
     EXIT --> CLOSE2: doors close
@@ -200,16 +139,15 @@ stateDiagram-v2
 
 ## Tie-breaking at equal times
 
-Insert uses `<=` when scanning — events at same `time` preserve FIFO among equals. Mention in presentation if asked about ordering at `t=0`.
+FEL insert uses ordered scan — events at the same `time` keep stable relative order. Mention if asked about simultaneous events.
 
 ---
 
-## Events NOT yet in system (phase 2 ideas)
+## Events not yet implemented (optional)
 
 | Proposed type | Purpose |
 |---------------|---------|
 | `EVENT_EMERGENCY_STOP` | Fire alarm |
 | `EVENT_MAINTENANCE_START` | Remove cab from service |
-| `EVENT_PERIODIC_TICK` | Only if moving to hybrid model |
 
-Add to `EventType`, `event_type_to_string`, and `simulation_dispatch_event` switch.
+See `TODO.md` and `simulation.c` comments.

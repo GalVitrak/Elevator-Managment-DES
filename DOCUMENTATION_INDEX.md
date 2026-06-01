@@ -10,7 +10,7 @@ Repository: https://github.com/GalVitrak/Elevator-Managment-DES
 
 | If you are… | Read first |
 |-------------|------------|
-| **Presenting to class** | [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) → [docs/PRESENTATION_SLIDES.md](docs/PRESENTATION_SLIDES.md) |
+| **Presenting to class** | [docs/HOW_TO_PRESENT.md](docs/HOW_TO_PRESENT.md) → [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) |
 | **Running a live demo** | [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) → [docs/SAMPLE_RUNS.md](docs/SAMPLE_RUNS.md) |
 | **New developer / teammate** | [README.md](README.md) → [TODO.md](TODO.md) → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | **Grader / reviewer** | [docs/GRADING_MAP.md](docs/GRADING_MAP.md) → [docs/ACADEMIC_REQUIREMENTS.md](docs/ACADEMIC_REQUIREMENTS.md) |
@@ -22,7 +22,8 @@ Repository: https://github.com/GalVitrak/Elevator-Managment-DES
 
 | Document | Pages (est.) | Purpose |
 |----------|--------------|---------|
-| [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) | ~15 | How to present: storyline, timing, what to emphasize |
+| [docs/HOW_TO_PRESENT.md](docs/HOW_TO_PRESENT.md) | ~12 | **Slides, code snippets, demo, results** — main presentation builder |
+| [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) | ~5 | Timing and emphasis (companion to HOW_TO_PRESENT) |
 | [docs/PRESENTATION_SLIDES.md](docs/PRESENTATION_SLIDES.md) | ~20 | Slide-by-slide titles, bullets, speaker notes |
 | [docs/DES_THEORY.md](docs/DES_THEORY.md) | ~12 | DES concepts, FEL, vs time-step — theory for slides |
 | [docs/DES_COURSE_HE.md](docs/DES_COURSE_HE.md) | ~4 | עברית: קפיצת שעון מאירוע לאירוע, לולאת T מינימלי |

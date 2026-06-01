@@ -431,10 +431,14 @@ void simulation_schedule_passenger_arrival(Simulation* sim, double arrivalTime,
     log_message(sim->currentTime, LOG_INFO, msg);
 }
 
-/* simulation_print_state - Debug dump: time, elevators, floors, FEL. */
-void simulation_print_state(const Simulation* sim)
+/* simulation_print_state - Debug dump: time, elevators, floors, FEL; grid optional. */
+void simulation_print_state(const Simulation* sim, int showGrid)
 {
     int i;
+
+    if (sim == NULL) {
+        return;
+    }
 
     printf("\n=== Simulation State (t=%.2f / max=%.2f) ===\n",
            sim->currentTime, sim->maxSimulationTime);
@@ -449,8 +453,10 @@ void simulation_print_state(const Simulation* sim)
         floor_print_queue(&sim->floors[i]);
     }
 
-    building_grid_sync((BuildingGrid*)&sim->buildingView, sim);
-    building_grid_print(&sim->buildingView);
+    if (showGrid) {
+        building_grid_sync((BuildingGrid*)&sim->buildingView, sim);
+        building_grid_print(&sim->buildingView);
+    }
 
     event_list_print(&sim->eventList);
     printf("==========================================\n\n");

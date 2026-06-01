@@ -111,6 +111,8 @@ void logger_begin_simulation_run(void)
     logFile = fopen(LOG_FILE_NAME, "w");
     if (logFile == NULL) {
         fprintf(stderr, "Warning: could not open log file '%s'\n", LOG_FILE_NAME);
+    } else {
+        text_table_print_project_ascii_art(logFile);
     }
 }
 

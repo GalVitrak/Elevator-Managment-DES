@@ -14,6 +14,9 @@ typedef struct {
 /* Centered banner line (width 80). */
 void text_table_print_banner(FILE* out, const char* title);
 
+/* Large ASCII "ELEVATOR" title (console, log, results file). */
+void text_table_print_project_ascii_art(FILE* out);
+
 /* Section heading with blank line after. */
 void text_table_print_section(FILE* out, const char* title);
 

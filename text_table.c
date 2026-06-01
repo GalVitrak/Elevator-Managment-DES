@@ -85,6 +85,27 @@ void text_table_print_banner(FILE* out, const char* title)
     fputc('\n', out);
 }
 
+void text_table_print_project_ascii_art(FILE* out)
+{
+    if (out == NULL) {
+        return;
+    }
+
+    fputc('\n', out);
+    fprintf(out, "      $$$$$$$$\\ $$\\                               $$\\                               $$$$$$$\\  $$$$$$$$\\  $$$$$$\\  \n");
+    fprintf(out, "      $$  _____|$$ |                              $$ |                              $$  __$$\\ $$  _____|$$  __$$\\ \n");
+    fprintf(out, "      $$ |      $$ | $$$$$$\\ $$\\    $$\\ $$$$$$\\ $$$$$$\\    $$$$$$\\   $$$$$$\\        $$ |  $$ |$$ |      $$ /  \\__|\n");
+    fprintf(out, "      $$$$$\\    $$ |$$  __$$\\\\$$\\  $$  |\\____$$\\\\_$$  _|  $$  __$$\\ $$  __$$\\       $$ |  $$ |$$$$$\\    \\$$$$$$\\  \n");
+    fprintf(out, "      $$  __|   $$ |$$$$$$$$ |\\$$\\$$  / $$$$$$$ | $$ |    $$ /  $$ |$$ |  \\__|      $$ |  $$ |$$  __|    \\____$$\\ \n");
+    fprintf(out, "      $$ |      $$ |$$   ____| \\$$$  / $$  __$$ | $$ |$$\\ $$ |  $$ |$$ |            $$ |  $$ |$$ |      $$\\   $$ |\n");
+    fprintf(out, "      $$$$$$$$\\ $$ |\\$$$$$$$\\   \\$  /  \\$$$$$$$ | \\$$$$  |\\$$$$$$  |$$ |            $$$$$$$  |$$$$$$$$\\ \\$$$$$$  |\n");
+    fprintf(out, "      \\________|\\__| \\_______|   \\_/    \\_______|  \\____/  \\______/ \\__|            \\_______/ \\________| \\______/ \n");
+    fputc('\n', out);
+    fprintf(out, "              Elevator Management System - Discrete Event Simulation (DES)\n");
+    fprintf(out, "              Made by Gal Vitrak and Itay Megidish\n");
+    fputc('\n', out);
+}
+
 void text_table_print_section(FILE* out, const char* title)
 {
     if (out == NULL || title == NULL) {

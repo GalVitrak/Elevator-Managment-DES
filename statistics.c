@@ -369,6 +369,7 @@ static void statistics_print_to_file(FILE* out, SimulationStats* stats,
 
     statistics_sort_trip_records(stats);
 
+    text_table_print_project_ascii_art(out);
     text_table_print_banner(out, "ELEVATOR SIMULATION RESULTS");
 
     configKeys[0] = "Simulation end time";

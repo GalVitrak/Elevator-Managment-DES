@@ -63,8 +63,8 @@ void simulation_add_passenger_request(Simulation* sim, int sourceFloor,
 void simulation_schedule_passenger_arrival(Simulation* sim, double arrivalTime,
                                            int sourceFloor, int destinationFloor);
 
-/* Print elevators, all floor queues, and the FEL (menu option 5). */
-void simulation_print_state(const Simulation* sim);
+/* Print elevators, floor queues, FEL; optional building grid (menu option 4). */
+void simulation_print_state(const Simulation* sim, int showGrid);
 
 /* Return 1 if floor is in [0, numFloors); 0 otherwise. */
 int simulation_validate_floor(const Simulation* sim, int floor);
